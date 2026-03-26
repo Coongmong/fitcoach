@@ -459,8 +459,9 @@ async function send(){
   updateSendBtn();setBusy(true);
   if(pendingImg){
     scanning=true;
-    const caption=txt||'이 음식 사진을 분석해줘';
-    addMsg('user',caption,pendingImg.prev);showTyping(true);
+    const caption = (txt||'이 음식 사진을 분석해줘') + '\n\n반드시 응답 마지막에 아래 형식의 JSON 블록을 포함해줘:\n```json\n{"name":"음식명","portion":"약XXXg","kcal":숫자,"prot":숫자,"carb":숫자,"fat":숫자,"fiber":숫자}\n```';
+    const displayCaption = txt||'이 음식 사진을 분석해줘';
+    addMsg('user', displayCaption, pendingImg.prev); showTyping(true);
     const imgDataUrl='data:'+pendingImg.mime+';base64,'+pendingImg.b64;
     try{
       const reply=await callAPIImg(msgs.filter(m=>!m.imgPrev),{role:'user',content:[{type:'image',source:{type:'base64',media_type:pendingImg.mime,data:pendingImg.b64}},{type:'text',text:caption}]},buildSysFood());
