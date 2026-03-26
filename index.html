@@ -445,7 +445,7 @@ async function callAPI(messages,system){
 }
 async function callAPIImg(textMsgs,imageMsg,system){
   const messages=[...textMsgs.slice(-6).map(m=>({role:m.role,content:String(m.content||'')})),imageMsg];
-  const res=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:1000,system,messages})});
+  const res=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:2000,system,messages})});
   if(!res.ok){let d='';try{const e=await res.json();d=e?.error?.message||'';}catch{}throw new Error(`${res.status}${d?' — '+d:''}`);}
   return (await res.json()).content?.[0]?.text||'응답 오류';
 }
@@ -481,8 +481,9 @@ async function send(){
     addMsg('user',txt);showTyping(false);
     try{
       const reply=await callAPI(msgs.slice(-20),buildSysChat());
-      if(parsed.length>0){await saveSession(parsed);await loadAll();renderWorkoutTab();}
+      if(parsed.length>0){await saveSession(parsed);await loadAll();}
       await detectAndSaveProfile(txt+reply);
+      await detectAndSaveRoutineFromChat(reply, txt);
       hideTyping();addMsg('assistant',reply);
     }catch(e){hideTyping();addMsg('assistant',`오류: ${e.message}\n\n• API 키 확인\n• Anthropic 크레딧 확인`);}
   }
@@ -587,18 +588,354 @@ function renderNutritionTab(){
   <div class="card"><div class="sec-lbl">최근 7일 칼로리</div><div class="bar-row">${getWeek().map((date,i)=>{const k=w7[date]||0,isT=i===6,over=k>GOAL_KCAL();const h=k>0?Math.max(4,(k/maxK)*60):4;const color=isT?C.or:over?C.re:k>0?'#7c3f0e':C.br;return barHTML(h,color,DAY[new Date(date).getDay()],k>0?k:'');}).join('')}</div></div>`;
 }
 
-// 운동 탭
-function renderWorkoutTab(){
+// ── 운동 플랜 상태 ────────────────────────────────────────────
+let monthPlan = {};       // { 'YYYY-MM-DD': { muscle:'가슴', routines:[{name,sets,doneTime:null}], done:false, totalTime:null } }
+let activeDayKey = null;  // 현재 열린 날짜
+let activeExIdx  = null;  // 현재 타이머 중인 운동 인덱스
+let setTimer = null;      // setInterval 핸들
+let setStart  = null;     // 세트 시작 시각
+let doneSet   = 0;        // 수행한 세트 수
+
+const MUSCLE_LABELS = ['가슴','등','하체','어깨','팔','전신','스트레칭','휴식',''];
+const DAY_KO_FULL = ['일요일','월요일','화요일','수요일','목요일','금요일','토요일'];
+
+// 이번 달 날짜 배열
+function getMonthDates(){
+  const now = new Date();
+  const y = now.getFullYear(), m = now.getMonth();
+  const days = [];
+  const total = new Date(y, m+1, 0).getDate();
+  for(let d=1;d<=total;d++){
+    const dt = new Date(y,m,d);
+    days.push(dt.toISOString().split('T')[0]);
+  }
+  return days;
+}
+
+// 주 단위로 묶기
+function groupByWeek(dates){
+  const weeks = [];
+  let week = [];
+  dates.forEach(d=>{
+    week.push(d);
+    if(new Date(d).getDay()===0 || d===dates[dates.length-1]){ weeks.push([...week]); week=[]; }
+  });
+  if(week.length) weeks.push(week);
+  return weeks;
+}
+
+// monthPlan Firestore 저장/로드
+async function saveMonthPlan(){
+  if(!currentUser)return;
+  const key = new Date().toISOString().slice(0,7); // 'YYYY-MM'
+  await setDoc(uDoc('plans', key), { data: JSON.stringify(monthPlan) });
+}
+async function loadMonthPlan(){
+  if(!currentUser)return;
+  const key = new Date().toISOString().slice(0,7);
+  try{
+    const d = await getDoc(uDoc('plans', key));
+    if(d.exists()) monthPlan = JSON.parse(d.data().data||'{}');
+    else monthPlan = {};
+  }catch{ monthPlan={}; }
+}
+
+// 시간 포맷
+function fmtSec(sec){ const m=Math.floor(sec/60),s=sec%60; return m+':'+String(s).padStart(2,'0'); }
+
+// 운동 탭 렌더
+async function renderWorkoutTab(){
   const el=document.getElementById('workout-tab');
-  const totVol=(sessions.reduce((s,x)=>s+(x.totalVolume||0),0)/1000).toFixed(1);
-  const maxV=Math.max(...Object.values(weekVol),1);
-  const prList=Object.values(prs);
-  el.innerHTML=`
-  <div class="stat-grid">${[['이번 달',sessions.length,'회'],['총 볼륨',totVol,'톤'],['PR 종목',prList.length,'개']].map(([l,v,u])=>`<div class="stat-card"><div class="stat-lbl">${l}</div><div class="stat-val">${v}<span class="stat-unit">${u}</span></div></div>`).join('')}</div>
-  <div class="card"><div class="sec-lbl">최근 7일 볼륨</div><div class="bar-row">${getWeek().map((date,i)=>{const vol=weekVol[date]||0,isT=i===6;const h=vol>0?Math.max(4,(vol/maxV)*60):4;const color=isT?C.gr:vol>0?C.gd:C.br;return barHTML(h,color,DAY[new Date(date).getDay()],vol>0?`${(vol/1000).toFixed(1)}t`:'');}).join('')}</div></div>
-  ${prList.length>0?`<div class="card"><div class="sec-lbl">개인 최고 기록 (PR)</div>${prList.map(pr=>`<div class="pr-row"><span style="font-size:13px;font-weight:500">${esc(pr.name)}</span><div style="text-align:right"><span style="font-size:16px;font-weight:700;color:${C.gr};font-family:'DM Mono',monospace">${pr.weight}<span style="font-size:9px;color:${C.mu};font-weight:400">kg</span></span><div style="font-size:10px;color:${C.mu}">${pr.reps}회 · ${pr.date}</div></div></div>`).join('')}</div>`:''}
-  ${sessions.length>0?`<div class="card"><div class="sec-lbl">최근 운동 기록</div>${sessions.slice(0,5).map(s=>`<div class="sess-card"><div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-size:12px;font-weight:600">${s.date}</span><span style="font-size:11px;color:${C.mu};font-family:'DM Mono',monospace">${s.totalVolume?.toLocaleString()}kg</span></div><div style="display:flex;flex-wrap:wrap;gap:5px">${s.exercises.map(ex=>`<span class="tag-pill${ex.isPersonalRecord?' pr':''}">${esc(ex.name)} ${ex.weight}kg${ex.isPersonalRecord?' 🎉':''}</span>`).join('')}</div></div>`).join('')}</div>`
-  :`<div class="card empty-state"><div style="font-size:13px;color:${C.mu};margin-bottom:10px">아직 운동 기록이 없어</div><button class="empty-btn" onclick="switchTab('chat')">채팅에서 기록 시작하기</button></div>`}`;
+  el.innerHTML='<div style="padding:20px;text-align:center;color:var(--mu)">불러오는 중...</div>';
+  await loadMonthPlan();
+
+  const monthDates = getMonthDates();
+  const weeks = groupByWeek(monthDates);
+  const now = new Date();
+  const monthLabel = `${now.getFullYear()}년 ${now.getMonth()+1}월`;
+
+  let html = `<div style="padding:0 0 6px"><div style="font-size:15px;font-weight:600;margin-bottom:14px">${monthLabel} 운동 플랜</div>`;
+
+  weeks.forEach((week, wi) => {
+    html += `<div style="margin-bottom:10px">`;
+    html += `<div style="font-size:10px;color:var(--mu);font-weight:500;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px">${wi+1}주차</div>`;
+    week.forEach(dateStr => {
+      const dt = new Date(dateStr+'T00:00:00');
+      const dayIdx = dt.getDay();
+      const dayName = DAY_KO_FULL[dayIdx];
+      const mm = dt.getMonth()+1, dd = dt.getDate();
+      const plan = monthPlan[dateStr] || {};
+      const muscle = plan.muscle ?? '';
+      const isDone = plan.done || false;
+      const totalTime = plan.totalTime || null;
+      const isToday = dateStr === todayStr();
+      const isPast = dt < new Date(new Date().setHours(0,0,0,0));
+
+      html += `<div id="day-row-${dateStr}" onclick="openDayDetail('${dateStr}')" style="display:flex;align-items:center;padding:10px 12px;margin-bottom:6px;background:${isToday?'var(--s3)':'var(--sf)'};border:1px solid ${isToday?'var(--b2)':'var(--br)'};border-radius:12px;cursor:pointer;transition:all .15s;gap:10px">
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:13px;font-weight:${isToday?'600':'400'};color:${isToday?'var(--tx)':'var(--mu2)'}">${mm}월 ${dd}일 ${dayName}</span>
+            ${isToday?'<span style="font-size:9px;background:var(--gb);color:var(--gr);padding:1px 6px;border-radius:20px;font-weight:600">오늘</span>':''}
+          </div>
+          <div class="muscle-label" style="font-size:12px;color:${muscle==='휴식'?'var(--mu)':muscle?'var(--bl)':'var(--mu)'};margin-top:3px">${muscle||'미정'}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+          ${isDone?`<span style="font-size:11px;color:var(--gr);font-weight:500">완료 ${totalTime?fmtSec(totalTime):''}</span>`:''}
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--mu)" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
+  });
+
+  html += `</div>
+  <!-- 날짜 상세 패널 -->
+  <div id="day-detail" style="display:none"></div>`;
+
+  el.innerHTML = html;
+
+  // 오늘 자동 열기
+  if(monthPlan[todayStr()]?.muscle && monthPlan[todayStr()]?.muscle !== '휴식'){
+    openDayDetail(todayStr());
+  }
+}
+window.renderWorkoutTab = renderWorkoutTab;
+
+// 날짜 상세 (루틴 + 세트 타이머)
+function openDayDetail(dateStr){
+  activeDayKey = dateStr;
+  const dt = new Date(dateStr+'T00:00:00');
+  const mm = dt.getMonth()+1, dd = dt.getDate();
+  const dayName = DAY_KO_FULL[dt.getDay()];
+  const plan = monthPlan[dateStr] || {};
+  const muscle = plan.muscle || '미정';
+  const routines = plan.routines || [];
+  const isDone = plan.done || false;
+
+  const panel = document.getElementById('day-detail');
+  panel.style.display = 'block';
+  panel.scrollIntoView({behavior:'smooth', block:'start'});
+
+  renderDayPanel(dateStr);
+}
+window.openDayDetail = openDayDetail;
+
+function renderDayPanel(dateStr){
+  const panel = document.getElementById('day-detail');
+  if(!panel) return;
+  const dt = new Date(dateStr+'T00:00:00');
+  const mm = dt.getMonth()+1, dd = dt.getDate();
+  const dayName = DAY_KO_FULL[dt.getDay()];
+  const plan = monthPlan[dateStr] || { muscle:'', routines:[], done:false, totalTime:null };
+  const muscle = plan.muscle || '';
+  const routines = plan.routines || [];
+  const isDone = plan.done || false;
+
+  let html = `<div class="card" style="margin-top:0">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div>
+        <div style="font-size:14px;font-weight:600">${mm}월 ${dd}일 ${dayName}</div>
+        <div style="font-size:12px;color:var(--bl);margin-top:2px">${muscle||'부위 미정'}</div>
+      </div>
+      ${isDone?`<span style="font-size:12px;color:var(--gr);font-weight:600;background:var(--gb);padding:4px 10px;border-radius:20px">완료 ${plan.totalTime?fmtSec(plan.totalTime):''}</span>`:''}
+    </div>
+
+    <!-- 부위 선택 -->
+    <div style="margin-bottom:14px">
+      <div style="font-size:10px;color:var(--mu);font-weight:500;letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px">운동 부위</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        ${MUSCLE_LABELS.map(lb=>`
+          <button onclick="setMuscle('${dateStr}','${lb}')" style="padding:5px 12px;border-radius:20px;border:1px solid ${muscle===lb?'var(--bl)':'var(--br)'};background:${muscle===lb?'var(--bb)':'transparent'};color:${muscle===lb?'var(--bl)':'var(--mu)'};font-size:12px;font-family:inherit;transition:all .15s">${lb||'없음'}</button>
+        `).join('')}
+      </div>
+    </div>
+
+    <!-- 루틴 목록 -->
+    <div style="margin-bottom:14px">
+      <div style="font-size:10px;color:var(--mu);font-weight:500;letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px">추천 루틴</div>
+      ${routines.length===0?`<div style="font-size:12px;color:var(--mu);padding:12px 0">아직 루틴이 없어. 채팅에서 "${mm}월 ${dd}일 ${muscle||''} 루틴 짜줘"라고 말해봐!</div>`:''}
+      ${routines.map((r,i)=>{
+        const isActive = activeExIdx===i && activeDayKey===dateStr;
+        const isDoneEx = r.doneTime != null;
+        return `<div id="ex-row-${i}" onclick="toggleExercise('${dateStr}',${i})" style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--br);cursor:pointer">
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:500;color:${isDoneEx?'var(--gr)':isActive?'var(--ye)':'var(--tx)'}">${esc(r.name)}</div>
+            <div style="font-size:11px;color:var(--mu);margin-top:2px">${r.sets}세트${r.kg?` · ${r.kg}kg`:''}</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0">
+            ${isDoneEx?`<span style="font-size:11px;color:var(--gr)">${fmtSec(r.doneTime)}</span>`:''}
+            ${isActive?`<span style="font-size:11px;color:var(--ye)">진행중</span>`:''}
+          </div>
+        </div>
+        ${isActive?renderSetTimer(r, dateStr, i):''}`;
+      }).join('')}
+    </div>
+
+    <!-- 루틴 추가 -->
+    <div style="display:flex;gap:8px;margin-bottom:4px">
+      <input id="new-ex-name" placeholder="운동 이름" style="flex:1;background:var(--s2);border:1px solid var(--br);border-radius:8px;padding:8px 10px;color:var(--tx);font-size:12px;font-family:inherit;outline:none">
+      <input id="new-ex-sets" placeholder="세트" type="number" min="1" style="width:60px;background:var(--s2);border:1px solid var(--br);border-radius:8px;padding:8px 10px;color:var(--tx);font-size:12px;font-family:inherit;outline:none">
+      <button onclick="addRoutineItem('${dateStr}')" style="padding:8px 12px;background:var(--gr);border:none;border-radius:8px;color:#0c0e14;font-size:12px;font-weight:600;font-family:inherit">추가</button>
+    </div>
+  </div>`;
+
+  panel.innerHTML = html;
+}
+
+function renderSetTimer(r, dateStr, idx){
+  return `<div id="set-timer-${idx}" style="background:var(--s2);border-radius:10px;padding:12px;margin-top:6px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <span id="timer-display-${idx}" style="font-size:20px;font-weight:700;font-family:'DM Mono',monospace;color:var(--ye)">0:00</span>
+      <span id="set-count-${idx}" style="font-size:13px;color:var(--mu)">${doneSet} / ${r.sets} 세트</span>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button id="start-btn-${idx}" onclick="startSet('${dateStr}',${idx})" style="flex:1;padding:9px;background:var(--gr);border:none;border-radius:8px;color:#0c0e14;font-size:13px;font-weight:600;font-family:inherit">기록</button>
+      <button onclick="endSet('${dateStr}',${idx})" style="flex:1;padding:9px;background:var(--s3);border:1px solid var(--br);border-radius:8px;color:var(--tx);font-size:13px;font-family:inherit">종료</button>
+    </div>
+  </div>`;
+}
+
+// 부위 설정
+async function setMuscle(dateStr, muscle){
+  if(!monthPlan[dateStr]) monthPlan[dateStr] = { muscle:'', routines:[], done:false, totalTime:null };
+  monthPlan[dateStr].muscle = muscle;
+  await saveMonthPlan();
+  renderDayPanel(dateStr);
+  // 달력 행도 업데이트
+  const row = document.getElementById('day-row-'+dateStr);
+  if(row){ const span=row.querySelector('.muscle-label'); if(span) span.textContent=muscle||'미정'; }
+}
+window.setMuscle = setMuscle;
+
+// 루틴 아이템 추가
+async function addRoutineItem(dateStr){
+  const name = document.getElementById('new-ex-name')?.value.trim();
+  const sets = parseInt(document.getElementById('new-ex-sets')?.value)||3;
+  if(!name) return;
+  if(!monthPlan[dateStr]) monthPlan[dateStr]={ muscle:'', routines:[], done:false, totalTime:null };
+  monthPlan[dateStr].routines.push({ name, sets, doneTime:null });
+  await saveMonthPlan();
+  renderDayPanel(dateStr);
+}
+window.addRoutineItem = addRoutineItem;
+
+// 루틴 아이템 파싱 (채팅에서 자동 추가)
+async function parseAndSaveRoutineFromChat(text, dateStr){
+  // "운동명 | N세트" or "운동명 N세트" 패턴
+  const lines = text.split('\n');
+  const items = [];
+  for(const line of lines){
+    const m1 = line.match(/^[\d\.\-\*\s]*([가-힣a-zA-Z\s]+?)\s*[|\|]\s*(\d+)\s*세트/);
+    const m2 = line.match(/^[\d\.\-\*\s]*([가-힣a-zA-Z\s]+?)\s+(\d+)\s*세트/);
+    const m = m1||m2;
+    if(m){ const name=m[1].trim(); const sets=parseInt(m[2]); if(name&&sets) items.push({name,sets,doneTime:null}); }
+  }
+  if(items.length>0){
+    if(!monthPlan[dateStr]) monthPlan[dateStr]={ muscle:'', routines:[], done:false, totalTime:null };
+    monthPlan[dateStr].routines = items;
+    await saveMonthPlan();
+    return true;
+  }
+  return false;
+}
+
+// 운동 선택 (타이머 토글)
+function toggleExercise(dateStr, idx){
+  if(activeExIdx===idx && activeDayKey===dateStr){
+    // 닫기
+    clearInterval(setTimer); setTimer=null;
+    activeExIdx=null; activeDayKey=null; doneSet=0;
+  } else {
+    clearInterval(setTimer); setTimer=null;
+    activeExIdx=idx; activeDayKey=dateStr; doneSet=0;
+  }
+  renderDayPanel(dateStr);
+}
+window.toggleExercise = toggleExercise;
+
+// 세트 시작
+function startSet(dateStr, idx){
+  if(setTimer) return; // 이미 실행 중
+  setStart = Date.now();
+  const disp = document.getElementById(`timer-display-${idx}`);
+  setTimer = setInterval(()=>{
+    if(!disp) return;
+    const elapsed = Math.floor((Date.now()-setStart)/1000);
+    disp.textContent = fmtSec(elapsed);
+  }, 500);
+  document.getElementById(`start-btn-${idx}`)?.setAttribute('disabled','true');
+}
+window.startSet = startSet;
+
+// 세트 종료
+async function endSet(dateStr, idx){
+  clearInterval(setTimer); setTimer=null;
+  const elapsed = setStart ? Math.floor((Date.now()-setStart)/1000) : 0;
+  setStart = null;
+  doneSet++;
+
+  const plan = monthPlan[dateStr];
+  if(!plan) return;
+  const r = plan.routines[idx];
+  if(!r) return;
+
+  if(doneSet >= r.sets){
+    // 이 운동 완료 — 총 시간 기록
+    r.doneTime = r.doneTime ? r.doneTime + elapsed : elapsed;
+    activeExIdx = null;
+    activeDayKey = null;
+    doneSet = 0;
+
+    // 모든 운동 완료 체크
+    const allDone = plan.routines.length > 0 && plan.routines.every(ex => ex.doneTime != null);
+    if(allDone){
+      plan.done = true;
+      plan.totalTime = plan.routines.reduce((s,ex)=>s+(ex.doneTime||0), 0);
+    }
+    await saveMonthPlan();
+    renderDayPanel(dateStr);
+    // 달력 행 완료 표시 업데이트
+    const row = document.getElementById('day-row-'+dateStr);
+    if(row && plan.done){
+      const existing = row.querySelector('.done-badge');
+      if(!existing){
+        const badge = document.createElement('span');
+        badge.className = 'done-badge';
+        badge.style.cssText = 'font-size:11px;color:var(--gr);font-weight:500';
+        badge.textContent = '완료 ' + (plan.totalTime ? fmtSec(plan.totalTime) : '');
+        row.querySelector('div:last-child')?.prepend(badge);
+      }
+    }
+  } else {
+    // 세트 진행 중
+    r.doneTime = (r.doneTime||0) + elapsed;
+    const startBtn = document.getElementById('start-btn-'+idx);
+    const timerDisp = document.getElementById('timer-display-'+idx);
+    const setCount = document.getElementById('set-count-'+idx);
+    if(startBtn) startBtn.removeAttribute('disabled');
+    if(timerDisp) timerDisp.textContent = '0:00';
+    if(setCount) setCount.textContent = doneSet + ' / ' + r.sets + ' 세트';
+  }
+}
+window.endSet = endSet;
+
+// 채팅에서 루틴 감지 → 자동 저장
+async function detectAndSaveRoutineFromChat(reply, userText){
+  // "N월 M일" 날짜 감지
+  const dateMatch = userText.match(/(\d{1,2})월\s*(\d{1,2})일/);
+  if(!dateMatch) return;
+  const now = new Date();
+  const targetDate = new Date(now.getFullYear(), parseInt(dateMatch[1])-1, parseInt(dateMatch[2]));
+  const dateStr = targetDate.toISOString().split('T')[0];
+  await parseAndSaveRoutineFromChat(reply, dateStr);
+
+  // 부위 감지
+  const muscleMatch = userText.match(/가슴|등|하체|어깨|팔|전신|스트레칭/);
+  if(muscleMatch){
+    if(!monthPlan[dateStr]) monthPlan[dateStr]={ muscle:'', routines:[], done:false, totalTime:null };
+    monthPlan[dateStr].muscle = muscleMatch[0];
+    await saveMonthPlan();
+  }
 }
 
 // 시작
