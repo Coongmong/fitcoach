@@ -396,7 +396,17 @@ function parseWorkout(text){
   return out;
 }
 const calcVol=exs=>exs.reduce((s,e)=>s+e.weight*e.reps*e.sets,0);
-function extractJson(text){try{const m=text.match(/```json\s*([\s\S]+?)```/);if(m)return JSON.parse(m[1]);}catch{}return null;}
+function extractJson(text){
+  // 방법 1: ```json ... ``` 블록
+  try{const m=text.match(/```json\s*([\s\S]+?)```/);if(m)return JSON.parse(m[1].trim());}catch{}
+  // 방법 2: ``` ... ``` 일반 블록
+  try{const m=text.match(/```\s*(\{[\s\S]+?\})\s*```/);if(m)return JSON.parse(m[1].trim());}catch{}
+  // 방법 3: 텍스트 내 { ... } 패턴 (kcal 포함된 것만)
+  try{const m=text.match(/\{[^{}]*"kcal"[^{}]*\}/);if(m)return JSON.parse(m[0]);}catch{}
+  // 방법 4: 마지막 줄에 있는 JSON
+  try{const lines=text.trim().split('\n');for(let i=lines.length-1;i>=0;i--){const l=lines[i].trim();if(l.startsWith('{')&&l.endsWith('}')){return JSON.parse(l);}}}catch{}
+  return null;
+}
 
 // 시스템 프롬프트
 function buildSysChat(){
@@ -410,12 +420,20 @@ function buildSysChat(){
 }
 function buildSysFood(){
   const td=foodToday.reduce((a,f)=>({kcal:a.kcal+f.kcal,prot:a.prot+f.prot}),{kcal:0,prot:0});
-  return `당신은 영양사 겸 AI 코치 "핏코치". 음식 사진 분석 전문.
-[오늘] ${td.kcal}kcal/${GOAL_KCAL()}kcal | 단백질 ${Math.round(td.prot)}g/${GOAL_PROT()}g | 섭취: ${foodToday.map(f=>`${f.name}(${f.kcal}kcal)`).join(',')||'없음'}
-[응답순서] 1.음식설명(2~3줄) 2.현황+조언(2~3줄) 3.응답 맨 마지막에만 JSON 1회:
+  return `당신은 영양사 겸 AI 코치 "핏코치". 음식 사진 분석 전문. 반말로 친근하게 대화합니다.
+[오늘 섭취 현황] ${td.kcal}kcal/${GOAL_KCAL()}kcal | 단백질 ${Math.round(td.prot)}g/${GOAL_PROT()}g
+[이미 먹은 것] ${foodToday.map(f=>`${f.name}(${f.kcal}kcal)`).join(', ')||'없음'}
+
+[필수 응답 형식 — 반드시 이 순서로, JSON 블록 절대 생략 금지]
+1. 사진 속 음식 설명 (2~3줄)
+2. 오늘 목표 대비 현황 + 영양 조언 (2~3줄)
+3. 아래 형식의 JSON 블록을 응답 맨 마지막에 반드시 1회 출력할 것. 이 블록이 없으면 데이터가 저장되지 않습니다:
+
 \`\`\`json
-{"name":"음식명","portion":"약XXXg","kcal":숫자,"prot":숫자,"carb":숫자,"fat":숫자,"fiber":숫자}
-\`\`\``;
+{"name":"음식명","portion":"약 XXXg 또는 1인분","kcal":숫자,"prot":숫자,"carb":숫자,"fat":숫자,"fiber":숫자}
+\`\`\`
+
+주의: JSON 블록은 응답의 마지막 줄에 위치해야 하며, 절대 중간에 넣거나 생략하지 말 것.`;
 }
 
 // Claude API — Netlify 프록시 경유
@@ -447,7 +465,13 @@ async function send(){
     try{
       const reply=await callAPIImg(msgs.filter(m=>!m.imgPrev),{role:'user',content:[{type:'image',source:{type:'base64',media_type:pendingImg.mime,data:pendingImg.b64}},{type:'text',text:caption}]},buildSysFood());
       const fd=extractJson(reply);
-      if(fd){await saveFoodLog(fd,imgDataUrl);await loadAll();renderNutritionTab();}
+      if(fd){
+        await saveFoodLog(fd,imgDataUrl);
+        await loadAll();
+        renderNutritionTab();
+      } else {
+        console.warn('[핏코치] JSON 파싱 실패. 응답 원문:', reply);
+      }
       hideTyping();addMsg('assistant',reply);
     }catch(e){hideTyping();addMsg('assistant',`분석 오류: ${e.message}`);}
     scanning=false;cancelImg();
