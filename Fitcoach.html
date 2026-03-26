@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>핏코치 — AI 운동·영양 코치</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans','Noto Sans KR',sans-serif;background:#0c0e14;color:#e8eaf2;min-height:100dvh;display:flex;flex-direction:column;font-size:14px;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0c0e14;--sf:#141720;--s2:#1c2030;--s3:#232740;
+  --br:#252836;--b2:#2e3350;--tx:#e8eaf2;--mu:#5a6080;--mu2:#8892b0;
+  --gr:#22c55e;--gd:#166534;--gb:#0d2018;
+  --or:#f97316;--ob:#1c1008;
+  --bl:#60a5fa;--bb:#0d1a30;
+  --pu:#a78bfa;--pb:#150f2a;
+  --re:#f87171;--rb:#1c0d0d;--ye:#fbbf24;
+}
+::-webkit-scrollbar{width:3px}
+::-webkit-scrollbar-thumb{background:var(--br);border-radius:2px}
+textarea::placeholder,input::placeholder{color:#2e3350}
+button{font-family:'DM Sans','Noto Sans KR',sans-serif;cursor:pointer}
+@keyframes bop{0%,80%,100%{transform:scale(.75);opacity:.4}40%{transform:scale(1.2);opacity:1}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.fade-in{animation:fadeIn .25s ease forwards}
+
+/* ── 셋업 화면 ── */
+#setup{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100dvh;padding:24px;gap:0}
+.setup-logo{width:52px;height:52px;background:var(--gr);border-radius:16px;display:flex;align-items:center;justify-content:center;margin-bottom:20px}
+.setup-title{font-size:22px;font-weight:600;letter-spacing:-.02em;margin-bottom:8px}
+.setup-sub{font-size:13px;color:var(--mu2);text-align:center;line-height:1.6;margin-bottom:28px;max-width:280px}
+.setup-box{width:100%;max-width:340px;background:var(--sf);border:1px solid var(--br);border-radius:16px;padding:20px}
+.setup-label{font-size:11px;font-weight:500;color:var(--mu);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px;display:block}
+.setup-input{width:100%;background:var(--s2);border:1px solid var(--br);border-radius:10px;padding:10px 12px;color:var(--tx);font-size:13px;font-family:inherit;outline:none;transition:border-color .15s}
+.setup-input:focus{border-color:var(--gr)}
+.setup-hint{font-size:11px;color:var(--mu);margin-top:8px;line-height:1.5}
+.setup-hint a{color:var(--bl);text-decoration:none}
+.setup-btn{width:100%;margin-top:16px;padding:11px;background:var(--gr);border:none;border-radius:10px;color:#0c0e14;font-size:14px;font-weight:600;transition:opacity .15s}
+.setup-btn:disabled{opacity:.4;cursor:not-allowed}
+.setup-btn:not(:disabled):hover{opacity:.9}
+.setup-err{font-size:12px;color:var(--re);margin-top:10px;text-align:center;display:none}
+
+/* ── 앱 레이아웃 ── */
+#app{display:none;flex-direction:column;height:100dvh;max-width:480px;margin:0 auto;width:100%}
+.header{height:52px;padding:0 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--br);flex-shrink:0;background:var(--bg)}
+.logo-mark{width:30px;height:30px;background:var(--gr);border-radius:9px;display:flex;align-items:center;justify-content:center}
+.app-name{font-weight:600;font-size:15px;letter-spacing:-.01em}
+.tab-bar{display:flex;gap:2px;background:var(--sf);padding:3px;border-radius:10px;border:1px solid var(--br)}
+.tab-btn{padding:5px 11px;border-radius:7px;border:none;font-size:12px;font-weight:500;transition:all .15s;display:flex;align-items:center;gap:5px;background:transparent;color:var(--mu)}
+.tab-btn.active{background:var(--s3);color:var(--tx)}
+
+/* ── 채팅 ── */
+#chat-tab{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.msg-list{flex:1;overflow-y:auto;padding:14px 14px 6px;display:flex;flex-direction:column;gap:10px}
+.msg-row{display:flex;gap:8px;align-items:flex-start;animation:fadeIn .2s ease}
+.msg-row.user{justify-content:flex-end}
+.avatar{width:28px;height:28px;background:var(--gr);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.bubble{max-width:76%;padding:9px 13px;border-radius:3px 12px 12px 12px;background:var(--sf);border:1px solid var(--br);line-height:1.65;white-space:pre-wrap;font-size:13.5px}
+.bubble.user{border-radius:12px 3px 12px 12px;background:var(--gb);border-color:#1e3a1e}
+.bubble img{width:100%;max-width:180px;border-radius:8px 8px 0 0;display:block;margin:-9px -13px 6px -13px;border-bottom:1px solid var(--br)}
+.typing{padding:10px 13px;background:var(--sf);border:1px solid var(--br);border-radius:3px 12px 12px 12px}
+.dot-row{display:flex;gap:5px;align-items:center}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--gr);animation:bop .9s ease-in-out infinite}
+.scan-label{font-size:11px;color:var(--or);margin-left:4px}
+.chips{padding:0 14px 8px;display:flex;gap:6px;overflow-x:auto;flex-shrink:0}
+.chip{padding:5px 11px;border-radius:20px;border:1px solid var(--br);background:transparent;color:var(--mu);font-size:11px;white-space:nowrap;flex-shrink:0;transition:all .15s}
+.chip:hover{border-color:var(--gr);color:var(--gr)}
+.chip.cam:hover{border-color:var(--or);color:var(--or)}
+.img-preview{padding:0 14px 8px;display:flex;align-items:center;gap:10px}
+.img-prev-thumb{position:relative}
+.img-prev-thumb img{width:56px;height:56px;object-fit:cover;border-radius:10px;border:2px solid var(--or);display:block}
+.img-prev-del{position:absolute;top:-7px;right:-7px;width:18px;height:18px;border-radius:50%;background:var(--re);border:2px solid var(--bg);color:#fff;font-size:9px;display:flex;align-items:center;justify-content:center;font-weight:700;padding:0}
+.input-area{padding:0 14px 14px;flex-shrink:0}
+.input-wrap{display:flex;gap:6px;background:var(--sf);border:1px solid var(--br);border-radius:14px;padding:4px 4px 4px 12px;align-items:flex-end;transition:border-color .15s}
+.input-wrap:focus-within{border-color:var(--b2)}
+.cam-btn{width:34px;height:34px;border-radius:9px;border:1px solid var(--b2);background:var(--s2);color:var(--mu);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
+.cam-btn:hover{background:var(--ob);border-color:var(--or);color:var(--or)}
+.msg-input{flex:1;background:transparent;border:none;outline:none;color:var(--tx);font-size:13.5px;resize:none;line-height:1.5;padding:6px 0;font-family:inherit;max-height:100px;min-height:34px}
+.send-btn{width:34px;height:34px;border-radius:9px;border:none;background:var(--s3);color:var(--mu);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
+.send-btn.active{background:var(--gr);color:#0c0e14}
+
+/* ── 공통 카드/섹션 ── */
+.scroll-tab{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:12px}
+.card{background:var(--sf);border:1px solid var(--br);border-radius:14px;padding:14px}
+.card-lg{border-radius:16px;padding:14px}
+.sec-lbl{font-size:10px;font-weight:500;color:var(--mu);letter-spacing:.07em;text-transform:uppercase;margin-bottom:12px}
+.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.stat-card{background:var(--sf);border:1px solid var(--br);border-radius:14px;padding:13px 12px}
+.stat-val{font-size:22px;font-weight:700;letter-spacing:-.02em}
+.stat-unit{font-size:11px;color:var(--mu);font-weight:400;margin-left:2px}
+.stat-lbl{font-size:10px;color:var(--mu);margin-bottom:5px}
+.bar-row{display:flex;gap:6px;justify-content:space-between}
+.bar-wrap{display:flex;flex-direction:column;align-items:center;gap:3px;flex:1}
+.bar-sub{font-size:9px;color:var(--mu);height:14px;display:flex;align-items:flex-end}
+.bar-bg{width:100%;height:64px;display:flex;align-items:flex-end}
+.bar-fill{width:100%;border-radius:4px 4px 0 0;transition:height .7s cubic-bezier(.34,1.56,.64,1)}
+.bar-lbl{font-size:10px;font-weight:500}
+.ring-wrap{position:relative;flex-shrink:0}
+.ring-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px}
+.pr-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--br)}
+.pr-row:last-child{border:none}
+.sess-card{padding:10px;background:var(--bg);border-radius:10px;border:1px solid var(--br);margin-bottom:8px}
+.sess-card:last-child{margin-bottom:0}
+.tag-pill{font-size:11px;padding:3px 8px;border-radius:6px;background:var(--s2);border:1px solid var(--br)}
+.tag-pill.pr{color:var(--gr);border-color:var(--gd)}
+/* 영양 */
+.nut-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.nut-card{background:var(--sf);border:1px solid var(--br);border-radius:14px;padding:14px 10px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px}
+.food-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--br)}
+.food-row:last-child{border:none}
+.food-thumb{width:48px;height:48px;border-radius:10px;object-fit:cover;flex-shrink:0;border:1px solid var(--br)}
+.food-thumb-ph{width:48px;height:48px;border-radius:10px;background:var(--s2);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.nut-tag{font-size:10px;padding:1px 6px;border-radius:4px}
+.empty-state{text-align:center;padding:28px 0}
+.empty-btn{padding:8px 18px;border-radius:10px;border:1px solid var(--gr);background:transparent;color:var(--gr);font-size:13px}
+/* 설정 버튼 */
+.settings-btn{width:28px;height:28px;border-radius:7px;border:1px solid var(--br);background:transparent;color:var(--mu);display:flex;align-items:center;justify-content:center;transition:all .15s}
+.settings-btn:hover{border-color:var(--b2);color:var(--tx)}
+</style>
+</head>
+<body>
+
+<!-- ══ 셋업 화면 ══════════════════════════════════════════════ -->
+<div id="setup">
+  <div class="setup-logo">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0c0e14" stroke-width="2.5" stroke-linecap="round"><path d="M6 4v16M18 4v16M3 8h18M3 16h18"/></svg>
+  </div>
+  <h1 class="setup-title">핏코치</h1>
+  <p class="setup-sub">AI 운동·영양 코치<br>음식 사진 분석부터 운동 루틴까지</p>
+  <div class="setup-box">
+    <label class="setup-label" for="api-key-input">Anthropic API 키</label>
+    <input class="setup-input" id="api-key-input" type="password" placeholder="sk-ant-api03-..." autocomplete="off" spellcheck="false">
+    <p class="setup-hint">
+      API 키는 이 기기의 localStorage에만 저장되고 외부로 전송되지 않아요.<br>
+      <a href="https://console.anthropic.com/settings/keys" target="_blank">→ API 키 발급받기</a>
+    </p>
+    <button class="setup-btn" id="setup-btn" disabled>시작하기</button>
+    <p class="setup-err" id="setup-err">API 키를 확인해줘. sk-ant-로 시작해야 해.</p>
+  </div>
+</div>
+
+<!-- ══ 메인 앱 ═════════════════════════════════════════════════ -->
+<div id="app">
+  <!-- 헤더 -->
+  <div class="header">
+    <div style="display:flex;align-items:center;gap:9px">
+      <div class="logo-mark">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0c0e14" stroke-width="2.5" stroke-linecap="round"><path d="M6 4v16M18 4v16M3 8h18M3 16h18"/></svg>
+      </div>
+      <span class="app-name">핏코치</span>
+      <span style="font-size:10px;background:var(--gb);color:var(--gr);padding:2px 8px;border-radius:20px;font-weight:500">AI 코치</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <div class="tab-bar">
+        <button class="tab-btn active" data-tab="chat" onclick="switchTab('chat')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>채팅
+        </button>
+        <button class="tab-btn" data-tab="nutrition" onclick="switchTab('nutrition')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/></svg>영양
+        </button>
+        <button class="tab-btn" data-tab="workout" onclick="switchTab('workout')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 4v16M18 4v16M3 8h18M3 16h18"/></svg>운동
+        </button>
+      </div>
+      <button class="settings-btn" onclick="resetKey()" title="API 키 변경">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M12 2v2M12 20v2M2 12h2M20 12h2M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- ─ 채팅 탭 ──────────────────────────────────────────────── -->
+  <div id="chat-tab">
+    <div class="msg-list" id="msg-list"></div>
+    <div class="img-preview" id="img-preview" style="display:none">
+      <div class="img-prev-thumb">
+        <img id="img-prev-img" src="" alt="">
+        <button class="img-prev-del" onclick="cancelImg()">✕</button>
+      </div>
+      <span style="font-size:12px;color:var(--or);line-height:1.4">음식 사진 첨부됨<br><span style="color:var(--mu)">전송하면 칼로리를 분석해줄게</span></span>
+    </div>
+    <div class="chips" id="chips">
+      <button class="chip cam" onclick="document.getElementById('file-input').click()">📷 음식 사진 분석</button>
+      <button class="chip" onclick="setInput('이번 주 루틴 짜줘')">이번 주 루틴 짜줘</button>
+      <button class="chip" onclick="setInput('오늘 영양 요약해줘')">오늘 영양 요약해줘</button>
+      <button class="chip" onclick="setInput('스쿼트 자세 알려줘')">스쿼트 자세 알려줘</button>
+    </div>
+    <div class="input-area">
+      <div class="input-wrap">
+        <button class="cam-btn" onclick="document.getElementById('file-input').click()" title="음식 사진">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        </button>
+        <textarea class="msg-input" id="msg-input" rows="1" placeholder="운동 기록하거나 질문해봐" onkeydown="handleKey(event)" oninput="autoResize(this);updateSendBtn()"></textarea>
+        <button class="send-btn" id="send-btn" onclick="send()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>
+    </div>
+    <input type="file" id="file-input" accept="image/*" capture="environment" style="display:none" onchange="handleFile(event)">
+  </div>
+
+  <!-- ─ 영양 탭 ──────────────────────────────────────────────── -->
+  <div id="nutrition-tab" class="scroll-tab" style="display:none"></div>
+
+  <!-- ─ 운동 탭 ──────────────────────────────────────────────── -->
+  <div id="workout-tab" class="scroll-tab" style="display:none"></div>
+</div>
+
+<script>
+// ── 상수 & 색상 ────────────────────────────────────────────────
+const C = {
+  bg:'#0c0e14',sf:'#141720',s2:'#1c2030',s3:'#232740',
+  br:'#252836',b2:'#2e3350',tx:'#e8eaf2',mu:'#5a6080',mu2:'#8892b0',
+  gr:'#22c55e',gd:'#166534',gb:'#0d2018',
+  or:'#f97316',ob:'#1c1008',
+  bl:'#60a5fa',bb:'#0d1a30',
+  pu:'#a78bfa',pb:'#150f2a',
+  re:'#f87171',rb:'#1c0d0d',ye:'#fbbf24',
+};
+
+// ── localStorage 기반 DB ───────────────────────────────────────
+const db = {
+  get(k)      { try{const v=localStorage.getItem(k);return v?JSON.parse(v):null;}catch{return null;}},
+  set(k,v)    { try{localStorage.setItem(k,JSON.stringify(v));}catch{}},
+  list(pfx)   { return Object.keys(localStorage).filter(k=>k.startsWith(pfx)); },
+};
+
+// ── 유틸 ──────────────────────────────────────────────────────
+const todayStr = () => new Date().toISOString().split('T')[0];
+const getWeek  = () => Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()-(6-i));return d.toISOString().split('T')[0];});
+const DAY = ['일','월','화','수','목','금','토'];
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+function fileToBase64(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(file);});}
+
+// ── 상태 ──────────────────────────────────────────────────────
+let API_KEY = '';
+let busy = false, scanning = false;
+let pendingImg = null; // {b64, mime, prev}
+let msgs = [];
+let sessions=[], foodToday=[], foodAll=[], prs={}, weekVol={}, profile=null;
+
+const GOAL_KCAL = ()=> profile?.goal==='fat_loss'?1800:profile?.goal==='strength'?2800:2200;
+const GOAL_PROT = ()=> profile?.goal==='hypertrophy'?160:130;
+
+// ── 셋업 ──────────────────────────────────────────────────────
+function initSetup(){
+  const saved = localStorage.getItem('fc:apikey');
+  if(saved){ API_KEY=saved; bootApp(); return; }
+  document.getElementById('setup').style.display='flex';
+  const inp = document.getElementById('api-key-input');
+  const btn = document.getElementById('setup-btn');
+  inp.addEventListener('input',()=>{ btn.disabled=!inp.value.trim().startsWith('sk-ant'); });
+  btn.addEventListener('click',()=>{
+    const k = inp.value.trim();
+    if(!k.startsWith('sk-ant')){ document.getElementById('setup-err').style.display='block'; return; }
+    localStorage.setItem('fc:apikey',k);
+    API_KEY=k; bootApp();
+  });
+}
+
+function resetKey(){
+  if(!confirm('API 키를 초기화할까? 운동·영양 기록은 유지돼.')) return;
+  localStorage.removeItem('fc:apikey');
+  location.reload();
+}
+
+function bootApp(){
+  document.getElementById('setup').style.display='none';
+  document.getElementById('app').style.display='flex';
+  loadAll();
+  addMsg('assistant','안녕! 나는 핏코치야 💪\n\n운동 기록, 루틴 추천은 물론 음식 사진을 찍으면 칼로리·영양성분도 분석해줄게!\n카메라 버튼(📷)을 눌러봐.');
+}
+
+// ── 데이터 로드 ───────────────────────────────────────────────
+function loadAll(){
+  profile = db.get('fc:profile');
+  const sk = db.list('fc:sess:');
+  const cut = new Date(); cut.setDate(cut.getDate()-30);
+  sessions=[]; const wv={};
+  getWeek().forEach(d=>{wv[d]=0;});
+  for(const k of sk){const s=db.get(k);if(s&&new Date(s.date)>=cut){sessions.push(s);if(wv[s.date]!==undefined)wv[s.date]+=s.totalVolume||0;}}
+  sessions.sort((a,b)=>new Date(b.date)-new Date(a.date));
+  weekVol=wv;
+  prs={};
+  for(const k of db.list('fc:pr:')){const pr=db.get(k);if(pr)prs[pr.name]=pr;}
+  foodAll=[];
+  for(const k of db.list('fc:food:')){const f=db.get(k);if(f)foodAll.push(f);}
+  foodAll.sort((a,b)=>new Date(b.at)-new Date(a.at));
+  foodToday=foodAll.filter(f=>f.date===todayStr());
+}
+
+// ── 시스템 프롬프트 ───────────────────────────────────────────
+function buildSysChat(){
+  const td=foodToday.reduce((a,f)=>({kcal:a.kcal+f.kcal,prot:a.prot+f.prot}),{kcal:0,prot:0});
+  const rec=sessions.slice(0,4).map(s=>`${s.date}: ${s.exercises.map(e=>`${e.name} ${e.weight}kg×${e.reps}×${e.sets}`).join(', ')}`).join('\n')||'없음';
+  return `당신은 "핏코치" — 운동·영양 전문 AI 코치입니다. 반말로 친근하게 대화합니다.
+[프로필] ${profile?`목표:${profile.goal||'?'}|레벨:${profile.level||'?'}`:'신규'}
+[오늘 영양] ${td.kcal}kcal/${GOAL_KCAL()}kcal | 단백질 ${Math.round(td.prot)}g/${GOAL_PROT()}g
+[최근 운동] ${rec}
+[행동규칙]
+- kg×회×세트 패턴 → "✅ 기록됐어!" 확인, PR이면 "🎉 신기록!"
+- 루틴 요청 → 프로필 기반 주간 플랜(세트·횟수·휴식 포함)
+- 운동 질문 → 주동근·자세·주의사항 순
+- 오늘 영양 물어보면 위 수치 기반 답변`;
+}
+
+function buildSysFood(){
+  const td=foodToday.reduce((a,f)=>({kcal:a.kcal+f.kcal,prot:a.prot+f.prot}),{kcal:0,prot:0});
+  return `당신은 영양사 겸 AI 코치 "핏코치"입니다. 음식 사진을 분석해 영양정보를 제공합니다.
+[오늘 이미 섭취] ${foodToday.map(f=>`${f.name}(${f.kcal}kcal)`).join(', ')||'없음'}
+[오늘 합계] ${td.kcal}kcal | 단백질 ${Math.round(td.prot)}g
+[목표] 칼로리 ${GOAL_KCAL()}kcal | 단백질 ${GOAL_PROT()}g | 사용자 목표: ${profile?.goal||'미설정'}
+
+[응답 순서 — 반드시 이 순서로]
+1. 사진 속 음식 설명 (2~3줄)
+2. 오늘 목표 대비 현황과 영양 조언 (2~3줄)
+3. 마지막 줄에 아래 JSON 블록을 출력 (중간에 넣지 말 것):
+
+\`\`\`json
+{"name":"음식명","portion":"약 XXXg 또는 1인분","kcal":숫자,"prot":숫자,"carb":숫자,"fat":숫자,"fiber":숫자}
+\`\`\`
+
+JSON 블록은 데이터 기록용이므로 응답의 맨 마지막에만 한 번 출력하고, 중간에 반복하지 마세요.`;
+}
+
+// ── 운동 파싱 ─────────────────────────────────────────────────
+function parseWorkout(text){
+  const pat=/([가-힣a-zA-Z ]+?)\s+(\d+(?:\.\d+)?)\s*kg\s*[×x×]\s*(\d+)\s*회\s*[×x×]\s*(\d+)\s*세트/gi;
+  const out=[];let m;
+  while((m=pat.exec(text))!==null) out.push({name:m[1].trim(),weight:+m[2],reps:+m[3],sets:+m[4]});
+  return out;
+}
+const calcVol = exs=>exs.reduce((s,e)=>s+e.weight*e.reps*e.sets,0);
+
+function extractJson(text){
+  try{const m=text.match(/```json\s*([\s\S]+?)```/);if(m)return JSON.parse(m[1]);}catch{}
+  return null;
+}
+
+// ── 저장 ──────────────────────────────────────────────────────
+function saveSession(exs){
+  const id=`s${Date.now()}`;
+  const sess={sessionId:id,date:todayStr(),exercises:exs,totalVolume:calcVol(exs)};
+  for(const ex of sess.exercises){
+    const k=`fc:pr:${ex.name}`;
+    const cur=db.get(k);
+    if(!cur||ex.weight>cur.weight){db.set(k,{name:ex.name,weight:ex.weight,reps:ex.reps,date:todayStr()});ex.isPersonalRecord=true;}
+  }
+  db.set(`fc:sess:${todayStr()}:${id}`,sess);
+}
+
+function saveFoodLog(fd,imgDataUrl){
+  const id=`f${Date.now()}`;
+  const log={id,date:todayStr(),at:new Date().toISOString(),imgDataUrl:imgDataUrl||null,...fd};
+  db.set(`fc:food:${log.date}:${id}`,log);
+}
+
+function detectProfile(text){
+  const cur=db.get('fc:profile')||{}; let upd=false;
+  const gm={'근비대':'hypertrophy','근력':'strength','체중감량':'fat_loss','다이어트':'fat_loss'};
+  const lm={'초보':'beginner','입문':'beginner','중급':'intermediate','고급':'advanced'};
+  for(const[k,v]of Object.entries(gm)) if(text.includes(k)&&!cur.goal){cur.goal=v;upd=true;}
+  for(const[k,v]of Object.entries(lm)) if(text.includes(k)&&!cur.level){cur.level=v;upd=true;}
+  if(upd){db.set('fc:profile',cur);profile=cur;}
+}
+
+// ── API 호출 ──────────────────────────────────────────────────
+async function callAPI(messages, system){
+  // content가 배열(이미지 포함)인 메시지는 텍스트만 추출해 정규화
+  const normalized = messages.map(m => ({
+    role: m.role,
+    content: Array.isArray(m.content)
+      ? m.content.filter(b=>b.type==='text').map(b=>b.text).join('\n') || '(이미지 메시지)'
+      : (m.content || '')
+  })).filter(m => m.content.trim());
+
+  const res = await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'x-api-key': API_KEY,
+      'anthropic-version':'2023-06-01',
+      'anthropic-dangerous-direct-browser-access': true
+    },
+    body: JSON.stringify({model:'claude-sonnet-4-5', max_tokens:1000, system, messages: normalized})
+  });
+  if(!res.ok){
+    let detail='';
+    try{ const e=await res.json(); detail=e?.error?.message||JSON.stringify(e); }catch{}
+    throw new Error(`${res.status}${detail?' — '+detail:''}`);
+  }
+  const data=await res.json();
+  return data.content?.[0]?.text||'응답 오류';
+}
+
+// ── 이미지 포함 API 호출 (음식 분석 전용) ─────────────────────
+async function callAPIWithImage(textMsgs, imageMsg, system){
+  const messages = [
+    ...textMsgs.slice(-6).map(m=>({role:m.role, content: String(m.content||'')})),
+    imageMsg
+  ];
+  const res = await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'x-api-key': API_KEY,
+      'anthropic-version':'2023-06-01',
+      'anthropic-dangerous-direct-browser-access': true
+    },
+    body: JSON.stringify({model:'claude-sonnet-4-5', max_tokens:1000, system, messages})
+  });
+  if(!res.ok){
+    let detail='';
+    try{ const e=await res.json(); detail=e?.error?.message||JSON.stringify(e); }catch{}
+    throw new Error(`${res.status}${detail?' — '+detail:''}`);
+  }
+  const data=await res.json();
+  return data.content?.[0]?.text||'응답 오류';
+}
+
+// ── 메시지 전송 ───────────────────────────────────────────────
+async function send(){
+  const txt = document.getElementById('msg-input').value.trim();
+  if((!txt&&!pendingImg)||busy) return;
+  document.getElementById('msg-input').value='';
+  autoResize(document.getElementById('msg-input'));
+  updateSendBtn();
+  setBusy(true);
+
+  if(pendingImg){
+    scanning=true;
+    const caption=txt||'이 음식 사진을 분석해줘';
+    addMsg('user',caption,pendingImg.prev);
+    showTyping(true);
+
+    // 이미지를 dataURL로 저장 (영양 탭 썸네일용)
+    const imgDataUrl = 'data:'+pendingImg.mime+';base64,'+pendingImg.b64;
+
+    const textOnlyMsgs = msgs.filter(m=>!m.imgPrev);
+    const imageMsg = {
+      role:'user',
+      content:[
+        {type:'image',source:{type:'base64',media_type:pendingImg.mime,data:pendingImg.b64}},
+        {type:'text',text:caption},
+      ]
+    };
+    try{
+      const reply=await callAPIWithImage(textOnlyMsgs, imageMsg, buildSysFood());
+      const fd=extractJson(reply);
+      if(fd){ saveFoodLog(fd, imgDataUrl); loadAll(); renderNutritionTab(); }
+      hideTyping(); addMsg('assistant',reply);
+    }catch(e){hideTyping();addMsg('assistant',`분석 중 오류가 발생했어.\n\n오류 내용: ${e.message}\n\n확인해볼 것:\n• API 키가 올바른지 확인 (헤더 설정 버튼으로 재입력)\n• Anthropic 계정에 크레딧이 있는지 확인\n• 인터넷 연결 상태 확인`);}
+    scanning=false; cancelImg();
+  } else {
+    const parsed=parseWorkout(txt);
+    addMsg('user',txt);
+    showTyping(false);
+    const apiMsgs=msgs.slice(-20).map(m=>({role:m.role,content:m.content}));
+    try{
+      const reply=await callAPI(apiMsgs,buildSysChat());
+      if(parsed.length>0){ saveSession(parsed); loadAll(); renderWorkoutTab(); }
+      detectProfile(txt+reply);
+      hideTyping(); addMsg('assistant',reply);
+    }catch(e){hideTyping();addMsg('assistant',`오류가 발생했어.\n\n오류 내용: ${e.message}\n\n확인해볼 것:\n• API 키가 올바른지 확인 (헤더 설정 버튼으로 재입력)\n• Anthropic 계정에 크레딧이 있는지 확인\n• 인터넷 연결 상태 확인`);}
+  }
+  setBusy(false);
+  setTimeout(()=>document.getElementById('msg-input').focus(),100);
+}
+
+// ── UI 헬퍼 ───────────────────────────────────────────────────
+function setBusy(v){ busy=v; updateSendBtn(); }
+
+function cleanReply(text){
+  // ```json ... ``` 블록 전체 제거
+  text = text.replace(/```json[\s\S]*?```/gi, '');
+  // ``` ... ``` 일반 코드블록도 제거
+  text = text.replace(/```[\s\S]*?```/g, '');
+  // 연속 빈 줄 정리 (3줄 이상 → 2줄)
+  text = text.replace(/\n{3,}/g, '\n\n');
+  return text.trim();
+}
+
+function addMsg(role,content,imgPrev){
+  msgs.push({role,content,imgPrev});
+  const list=document.getElementById('msg-list');
+  const row=document.createElement('div');
+  row.className='msg-row fade-in'+(role==='user'?' user':'');
+
+  // 어시스턴트 응답에서 JSON 블록 제거
+  const displayContent = role==='assistant' ? cleanReply(content) : content;
+
+  let html='';
+  if(role==='assistant'){
+    html+=`<div class="avatar"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0c0e14" stroke-width="2.5" stroke-linecap="round"><path d="M6 4v16M18 4v16M3 8h18M3 16h18"/></svg></div>`;
+  }
+  let bubbleContent='';
+  if(imgPrev) bubbleContent+=`<img src="${esc(imgPrev)}" alt="">`;
+  bubbleContent+=esc(displayContent).replace(/\n/g,'<br>').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
+  html+=`<div class="bubble${role==='user'?' user':''}">${bubbleContent}</div>`;
+  row.innerHTML=html;
+  list.appendChild(row);
+  list.scrollTop=list.scrollHeight;
+}
+
+let typingEl=null;
+function showTyping(isImg){
+  const list=document.getElementById('msg-list');
+  typingEl=document.createElement('div');
+  typingEl.className='msg-row fade-in';
+  typingEl.innerHTML=`<div class="avatar"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0c0e14" stroke-width="2.5" stroke-linecap="round"><path d="M6 4v16M18 4v16M3 8h18M3 16h18"/></svg></div>
+    <div class="typing"><div class="dot-row">
+      <div class="dot" style="animation-delay:0s;background:${isImg?C.or:C.gr}"></div>
+      <div class="dot" style="animation-delay:.15s;background:${isImg?C.or:C.gr}"></div>
+      <div class="dot" style="animation-delay:.3s;background:${isImg?C.or:C.gr}"></div>
+      ${isImg?'<span class="scan-label">사진 분석 중...</span>':''}
+    </div></div>`;
+  list.appendChild(typingEl);
+  list.scrollTop=list.scrollHeight;
+}
+function hideTyping(){ if(typingEl){typingEl.remove();typingEl=null;} }
+
+function handleKey(e){ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();} }
+function autoResize(el){ el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,100)+'px'; }
+function setInput(v){ document.getElementById('msg-input').value=v; updateSendBtn(); document.getElementById('msg-input').focus(); }
+function updateSendBtn(){
+  const active=(document.getElementById('msg-input').value.trim()||pendingImg)&&!busy;
+  const btn=document.getElementById('send-btn');
+  btn.classList.toggle('active',!!active);
+}
+
+async function handleFile(e){
+  const file=e.target.files?.[0]; if(!file) return;
+  const b64=await fileToBase64(file);
+  const prev=URL.createObjectURL(file);
+  pendingImg={b64,mime:file.type,prev};
+  document.getElementById('img-prev-img').src=prev;
+  document.getElementById('img-preview').style.display='flex';
+  document.getElementById('msg-input').placeholder='이 음식에 대해 더 알려줄 것 있어?';
+  updateSendBtn();
+  e.target.value='';
+}
+function cancelImg(){
+  pendingImg=null;
+  document.getElementById('img-preview').style.display='none';
+  document.getElementById('img-prev-img').src='';
+  document.getElementById('msg-input').placeholder='운동 기록하거나 질문해봐';
+  updateSendBtn();
+}
+
+// ── 탭 전환 ───────────────────────────────────────────────────
+function switchTab(id){
+  ['chat','nutrition','workout'].forEach(t=>{
+    document.getElementById(t+'-tab').style.display=t===id?(t==='chat'?'flex':'block'):'none';
+    document.querySelector(`[data-tab="${t}"]`).classList.toggle('active',t===id);
+  });
+  if(id==='nutrition') renderNutritionTab();
+  if(id==='workout')   renderWorkoutTab();
+}
+
+// ── SVG 링 ────────────────────────────────────────────────────
+function ringHTML(pct,color,size,sw){
+  const r=(size-sw)/2, circ=2*Math.PI*r, dash=Math.min(pct/100,1)*circ;
+  return `<svg width="${size}" height="${size}" style="transform:rotate(-90deg)">
+    <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${C.br}" stroke-width="${sw}"/>
+    <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${color}" stroke-width="${sw}"
+      stroke-dasharray="${dash} ${circ}" stroke-linecap="round"/>
+  </svg>`;
+}
+
+function barHTML(h,color,label,sub){
+  return `<div class="bar-wrap">
+    <div class="bar-sub">${sub||''}</div>
+    <div class="bar-bg"><div class="bar-fill" style="height:${Math.max(4,h)}px;background:${color}"></div></div>
+    <div class="bar-lbl" style="color:${color}">${label}</div>
+  </div>`;
+}
+
+// ── 영양 탭 렌더 ──────────────────────────────────────────────
+function renderNutritionTab(){
+  loadAll();
+  const el=document.getElementById('nutrition-tab');
+  const tKcal=foodToday.reduce((s,f)=>s+f.kcal,0);
+  const tProt=foodToday.reduce((s,f)=>s+f.prot,0);
+  const tCarb=foodToday.reduce((s,f)=>s+f.carb,0);
+  const tFat =foodToday.reduce((s,f)=>s+f.fat,0);
+  const kPct=Math.round((tKcal/GOAL_KCAL())*100);
+  const GOAL_CARB=280, GOAL_FAT=70;
+
+  // 7일 칼로리
+  const w7={};getWeek().forEach(d=>{w7[d]=0;});
+  foodAll.forEach(f=>{if(w7[f.date]!==undefined)w7[f.date]+=f.kcal;});
+  const maxK=Math.max(...Object.values(w7),GOAL_KCAL(),1);
+
+  const ringColor=kPct>110?C.re:kPct>90?C.ye:C.or;
+
+  el.innerHTML=`
+  <!-- 칼로리 요약 -->
+  <div class="card card-lg">
+    <div class="sec-lbl">오늘 칼로리</div>
+    <div style="display:flex;align-items:center;gap:18px">
+      <div class="ring-wrap">
+        ${ringHTML(kPct,ringColor,80,8)}
+        <div class="ring-center">
+          <span style="font-size:17px;font-weight:700;line-height:1">${tKcal}</span>
+          <span style="font-size:9px;color:${C.mu}">kcal</span>
+        </div>
+      </div>
+      <div style="flex:1">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;margin-bottom:10px">
+          <div><div style="font-size:10px;color:${C.mu}">목표</div><div style="font-size:13px;font-weight:600;color:${C.mu2}">${GOAL_KCAL()} kcal</div></div>
+          <div><div style="font-size:10px;color:${C.mu}">잔여</div><div style="font-size:13px;font-weight:600;color:${GOAL_KCAL()-tKcal<0?C.re:C.gr}">${Math.max(0,GOAL_KCAL()-tKcal)} kcal</div></div>
+        </div>
+        <div style="height:5px;background:${C.br};border-radius:3px;overflow:hidden">
+          <div style="height:100%;width:${Math.min(kPct,100)}%;background:${ringColor};border-radius:3px"></div>
+        </div>
+        <div style="font-size:10px;color:${C.mu};margin-top:4px;text-align:right">${kPct}%</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3대 영양소 -->
+  <div class="nut-grid">
+    ${[['단백질',Math.round(tProt),GOAL_PROT(),'g',C.bl,C.bb],['탄수화물',Math.round(tCarb),GOAL_CARB,'g',C.or,C.ob],['지방',Math.round(tFat),GOAL_FAT,'g',C.pu,C.pb]].map(([lbl,val,goal,unit,color])=>`
+    <div class="nut-card">
+      <div class="ring-wrap">${ringHTML(Math.round((val/goal)*100),color,52,5)}<div class="ring-center"></div></div>
+      <div style="font-size:16px;font-weight:700;letter-spacing:-.02em">${val}<span style="font-size:9px;color:${C.mu};font-weight:400">${unit}</span></div>
+      <div style="font-size:9px;color:${C.mu}">${lbl}</div>
+      <div style="font-size:9px;color:${color}">/${goal}${unit}</div>
+    </div>`).join('')}
+  </div>
+
+  <!-- 오늘 음식 -->
+  <div class="card card-lg">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div class="sec-lbl" style="margin-bottom:0">오늘 먹은 음식</div>
+      <button onclick="switchTab('chat')" style="font-size:11px;color:${C.or};background:transparent;border:1px solid ${C.b2};border-radius:7px;padding:3px 10px;font-family:inherit">+ 사진 추가</button>
+    </div>
+    ${foodToday.length===0?`
+      <div class="empty-state">
+        <div style="font-size:32px;margin-bottom:8px">📷</div>
+        <div style="font-size:13px;color:${C.mu};margin-bottom:6px">아직 오늘 음식 기록이 없어</div>
+        <div style="font-size:11px;color:${C.mu2}">채팅 탭의 카메라 버튼으로<br>음식 사진을 찍어봐</div>
+      </div>
+    `:`
+      ${foodToday.map((f,i)=>`
+      <div class="food-row">
+        ${f.imgDataUrl?`<img class="food-thumb" src="${esc(f.imgDataUrl)}" alt="${esc(f.name)}">`:`<div class="food-thumb-ph"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${C.mu}" stroke-width="1.5" stroke-linecap="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/></svg></div>`}
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(f.name)}</div>
+          <div style="font-size:11px;color:${C.mu};margin-top:2px">${esc(f.portion||'')}</div>
+          <div style="display:flex;gap:4px;margin-top:4px">
+            <span class="nut-tag" style="background:${C.bb};color:${C.bl}">단 ${Math.round(f.prot)}g</span>
+            <span class="nut-tag" style="background:${C.ob};color:${C.or}">탄 ${Math.round(f.carb)}g</span>
+            <span class="nut-tag" style="background:${C.pb};color:${C.pu}">지 ${Math.round(f.fat)}g</span>
+          </div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-size:18px;font-weight:700;color:${C.or};font-family:'DM Mono',monospace;line-height:1">${f.kcal}</div>
+          <div style="font-size:9px;color:${C.mu}">kcal</div>
+        </div>
+      </div>`).join('')}
+      <div style="display:flex;justify-content:space-between;padding:10px 0 0;margin-top:4px">
+        <span style="font-size:12px;color:${C.mu}">합계</span>
+        <span style="font-size:13px;font-weight:700;color:${C.or};font-family:'DM Mono',monospace">${tKcal} kcal</span>
+      </div>
+    `}
+  </div>
+
+  <!-- 7일 차트 -->
+  <div class="card card-lg">
+    <div class="sec-lbl">최근 7일 칼로리</div>
+    <div class="bar-row">
+      ${getWeek().map((date,i)=>{
+        const kcal=w7[date]||0,isToday=i===6,over=kcal>GOAL_KCAL();
+        const h=kcal>0?Math.max(4,(kcal/maxK)*60):4;
+        const color=isToday?C.or:over?C.re:kcal>0?'#7c3f0e':C.br;
+        return barHTML(h,color,DAY[new Date(date).getDay()],kcal>0?kcal:'');
+      }).join('')}
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;margin-top:10px;justify-content:flex-end">
+      <div style="width:20px;border-top:1px dashed ${C.mu};opacity:.5"></div>
+      <span style="font-size:10px;color:${C.mu}">목표 ${GOAL_KCAL()}kcal</span>
+    </div>
+  </div>`;
+}
+
+// ── 운동 탭 렌더 ──────────────────────────────────────────────
+function renderWorkoutTab(){
+  loadAll();
+  const el=document.getElementById('workout-tab');
+  const totVol=(sessions.reduce((s,x)=>s+(x.totalVolume||0),0)/1000).toFixed(1);
+  const maxV=Math.max(...Object.values(weekVol),1);
+  const prList=Object.values(prs);
+
+  el.innerHTML=`
+  <!-- 스탯 -->
+  <div class="stat-grid">
+    ${[['이번 달',sessions.length,'회'],['총 볼륨',totVol,'톤'],['PR 종목',prList.length,'개']].map(([l,v,u])=>`
+    <div class="stat-card"><div class="stat-lbl">${l}</div><div class="stat-val">${v}<span class="stat-unit">${u}</span></div></div>`).join('')}
+  </div>
+
+  <!-- 주간 볼륨 -->
+  <div class="card card-lg">
+    <div class="sec-lbl">최근 7일 볼륨</div>
+    <div class="bar-row">
+      ${getWeek().map((date,i)=>{
+        const vol=weekVol[date]||0,isToday=i===6;
+        const h=vol>0?Math.max(4,(vol/maxV)*60):4;
+        const color=isToday?C.gr:vol>0?C.gd:C.br;
+        return barHTML(h,color,DAY[new Date(date).getDay()],vol>0?`${(vol/1000).toFixed(1)}t`:'');
+      }).join('')}
+    </div>
+  </div>
+
+  <!-- PR -->
+  ${prList.length>0?`
+  <div class="card card-lg">
+    <div class="sec-lbl">개인 최고 기록 (PR)</div>
+    ${prList.map(pr=>`
+    <div class="pr-row">
+      <span style="font-size:13px;font-weight:500">${esc(pr.name)}</span>
+      <div style="text-align:right">
+        <span style="font-size:16px;font-weight:700;color:${C.gr};font-family:'DM Mono',monospace">${pr.weight}<span style="font-size:9px;color:${C.mu};font-weight:400">kg</span></span>
+        <div style="font-size:10px;color:${C.mu}">${pr.reps}회 · ${pr.date}</div>
+      </div>
+    </div>`).join('')}
+  </div>`:''}
+
+  <!-- 최근 세션 -->
+  ${sessions.length>0?`
+  <div class="card card-lg">
+    <div class="sec-lbl">최근 운동 기록</div>
+    ${sessions.slice(0,5).map(s=>`
+    <div class="sess-card">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+        <span style="font-size:12px;font-weight:600">${s.date}</span>
+        <span style="font-size:11px;color:${C.mu};font-family:'DM Mono',monospace">${s.totalVolume?.toLocaleString()}kg</span>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:5px">
+        ${s.exercises.map(ex=>`<span class="tag-pill${ex.isPersonalRecord?' pr':''}">${esc(ex.name)} ${ex.weight}kg${ex.isPersonalRecord?' 🎉':''}</span>`).join('')}
+      </div>
+    </div>`).join('')}
+  </div>`:`
+  <div class="card card-lg empty-state">
+    <div style="font-size:13px;color:${C.mu};margin-bottom:10px">아직 운동 기록이 없어</div>
+    <button class="empty-btn" onclick="switchTab('chat')">채팅에서 기록 시작하기</button>
+  </div>`}`;
+}
+
+// ── 초기화 ────────────────────────────────────────────────────
+initSetup();
+</script>
+</body>
+</html>
