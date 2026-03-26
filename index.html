@@ -382,13 +382,56 @@ async function saveFoodLog(fd,imgDataUrl){
 async function detectAndSaveProfile(text){
   if(!currentUser||!userProfile)return;
   const cur={...userProfile};let upd=false;
+  // 운동 목표/레벨
   const gm={'근비대':'hypertrophy','근력':'strength','체중감량':'fat_loss','다이어트':'fat_loss'};
   const lm={'초보':'beginner','입문':'beginner','중급':'intermediate','고급':'advanced'};
   for(const[k,v]of Object.entries(gm))if(text.includes(k)&&!cur.goal){cur.goal=v;upd=true;}
   for(const[k,v]of Object.entries(lm))if(text.includes(k)&&!cur.level){cur.level=v;upd=true;}
+  // 운동 환경 — 처음 나왔을 때만 저장
+  const timeM=text.match(/(\d+)\s*(분|시간)/);
+  if(timeM&&!cur.workoutTime){cur.workoutTime=timeM[0];upd=true;}
+  if(!cur.workoutPlace){
+    if(text.includes('헬스장')){cur.workoutPlace='헬스장';upd=true;}
+    else if(text.includes('집')&&(text.includes('운동')||text.includes('홈트'))){cur.workoutPlace='집';upd=true;}
+  }
+  // 사용자가 명시적으로 변경 요청한 경우 덮어쓰기
+  const chgTime=text.match(/(\d+\s*(?:분|시간))\s*(?:으로|로)\s*변경/);
+  if(chgTime){cur.workoutTime=chgTime[1];upd=true;}
+  const chgPlace=text.match(/(헬스장|집)\s*(?:으로|로)\s*변경/);
+  if(chgPlace){cur.workoutPlace=chgPlace[1];upd=true;}
   if(upd){await setDoc(doc(fdb,'users',currentUser.uid),cur,{merge:true});userProfile=cur;}
 }
 
+// 시스템 프롬프트
+function buildSysChat(){
+  const td=foodToday.reduce((a,f)=>({kcal:a.kcal+f.kcal,prot:a.prot+f.prot}),{kcal:0,prot:0});
+  const rec=sessions.slice(0,4).map(s=>`${s.date}: ${s.exercises.map(e=>`${e.name} ${e.weight}kg×${e.reps}×${e.sets}`).join(', ')}`).join('\n')||'없음';
+  // 오늘 운동 플랜
+  const todayPlan=monthPlan[todayStr()];
+  const todayMuscle=todayPlan?.muscle||null;
+  // 이번 달 플랜 요약 (부위 설정된 날짜만)
+  const planSummary=Object.entries(monthPlan).filter(([,p])=>p.muscle).slice(0,10)
+    .map(([d,p])=>{const dt=new Date(d+'T00:00:00');return `${dt.getMonth()+1}/${dt.getDate()}:${p.muscle}`;}).join(', ')||'없음';
+  // 운동 환경
+  const env=[
+    userProfile?.workoutTime?'가능시간:'+userProfile.workoutTime:null,
+    userProfile?.workoutPlace?'장소:'+userProfile.workoutPlace:null,
+    userProfile?.level?'레벨:'+userProfile.level:null,
+  ].filter(Boolean).join(' | ')||null;
+
+  return `당신은 "핏코치" — 운동·영양 전문 AI 코치. 사용자: ${currentUser?.displayName||''}. 반말로 친근하게 대화.
+
+[프로필] 목표:${userProfile?.goal||'미설정'}${env?' | '+env:''}
+[오늘 영양] ${td.kcal}kcal/${GOAL_KCAL()}kcal | 단백질 ${Math.round(td.prot)}g/${GOAL_PROT()}g
+[최근 운동] ${rec}
+[이번 달 플랜] ${planSummary}
+[오늘 운동 부위] ${todayMuscle||'미설정'}
+
+[행동 규칙]
+- kg×회×세트 패턴 → "✅ 기록됐어!" PR이면 "🎉 신기록!"
+- 루틴 요청 시: 오늘 부위가 설정돼 있으면 부위를 다시 묻지 말고 바로 루틴 제시
+- 운동 환경(시간/장소/레벨)이 프로필에 저장돼 있으면 다시 묻지 말 것. 없을 때만 1회 질문
+- 운동 질문 → 주동근·자세·주의사항 순
 // 파싱
 function parseWorkout(text){
   const pat=/([가-힣a-zA-Z ]+?)\s+(\d+(?:\.\d+)?)\s*kg\s*[×x×]\s*(\d+)\s*회\s*[×x×]\s*(\d+)\s*세트/gi;
@@ -408,16 +451,6 @@ function extractJson(text){
   return null;
 }
 
-// 시스템 프롬프트
-function buildSysChat(){
-  const td=foodToday.reduce((a,f)=>({kcal:a.kcal+f.kcal,prot:a.prot+f.prot}),{kcal:0,prot:0});
-  const rec=sessions.slice(0,4).map(s=>`${s.date}: ${s.exercises.map(e=>`${e.name} ${e.weight}kg×${e.reps}×${e.sets}`).join(', ')}`).join('\n')||'없음';
-  return `당신은 "핏코치" — 운동·영양 전문 AI 코치입니다. 사용자 이름은 ${currentUser?.displayName||''}. 반말로 친근하게 대화합니다.
-[프로필] ${userProfile?`목표:${userProfile.goal||'?'}|레벨:${userProfile.level||'?'}`:'신규'}
-[오늘 영양] ${td.kcal}kcal/${GOAL_KCAL()}kcal | 단백질 ${Math.round(td.prot)}g/${GOAL_PROT()}g
-[최근 운동] ${rec}
-[규칙] kg×회×세트 패턴→"✅ 기록됐어!" PR이면"🎉 신기록!" | 루틴 요청→주간 플랜 | 운동 질문→주동근·자세·주의사항 순`;
-}
 function buildSysFood(){
   const td=foodToday.reduce((a,f)=>({kcal:a.kcal+f.kcal,prot:a.prot+f.prot}),{kcal:0,prot:0});
   return `당신은 영양사 겸 AI 코치 "핏코치". 음식 사진 분석 전문. 반말로 친근하게 대화합니다.
