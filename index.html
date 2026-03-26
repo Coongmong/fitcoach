@@ -118,20 +118,7 @@ button{font-family:'DM Sans','Noto Sans KR',sans-serif;cursor:pointer}
 <body>
 
 <!-- 1단계: API 키 (최초 1회) -->
-<div id="screen-apikey" class="auth-screen">
-  <div class="auth-logo"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0c0e14" stroke-width="2.5" stroke-linecap="round"><path d="M6 4v16M18 4v16M3 8h18M3 16h18"/></svg></div>
-  <h1 class="auth-title">핏코치</h1>
-  <p class="auth-sub">AI 운동·영양 코치<br>최초 1회 API 키를 설정해요</p>
-  <div class="auth-box">
-    <div class="auth-field">
-      <label class="auth-label">Anthropic API 키</label>
-      <input class="auth-input" id="apikey-input" type="password" placeholder="sk-ant-api03-..." autocomplete="off" spellcheck="false">
-      <p class="auth-hint">키는 이 기기에만 저장돼요. <a href="https://console.anthropic.com/settings/keys" target="_blank">→ 발급받기</a></p>
-    </div>
-    <p class="auth-err" id="apikey-err">올바른 API 키를 입력해줘 (sk-ant-로 시작)</p>
-    <button class="auth-btn" id="apikey-btn" disabled>저장하고 계속</button>
-  </div>
-</div>
+
 
 <!-- 2단계: 로그인 -->
 <div id="screen-login" class="auth-screen">
@@ -261,7 +248,7 @@ const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'
 function fileToBase64(f){return new Promise((r,j)=>{const rd=new FileReader();rd.onload=()=>r(rd.result.split(',')[1]);rd.onerror=j;rd.readAsDataURL(f);});}
 
 // 상태
-let API_KEY='',currentUser=null;
+let currentUser=null;
 let busy=false,scanning=false,pendingImg=null;
 let msgs=[],sessions=[],foodToday=[],foodAll=[],prs={},weekVol={},userProfile=null;
 const GOAL_KCAL=()=>userProfile?.goal==='fat_loss'?1800:userProfile?.goal==='strength'?2800:2200;
@@ -275,23 +262,6 @@ function showScreen(id){
   else document.getElementById(id).classList.add('active');
 }
 window.showScreen=showScreen;
-
-// API 키 화면
-function initApiKeyScreen(){
-  const saved=localStorage.getItem('fc:apikey');
-  if(saved){API_KEY=saved;showScreen('screen-login');bindAuth();return;}
-  showScreen('screen-apikey');
-  const inp=document.getElementById('apikey-input');
-  const btn=document.getElementById('apikey-btn');
-  inp.addEventListener('input',()=>{btn.disabled=!inp.value.trim().startsWith('sk-ant');});
-  inp.addEventListener('keydown',e=>{if(e.key==='Enter'&&!btn.disabled)btn.click();});
-  btn.onclick=()=>{
-    const k=inp.value.trim();
-    if(!k.startsWith('sk-ant')){document.getElementById('apikey-err').style.display='block';return;}
-    localStorage.setItem('fc:apikey',k);API_KEY=k;
-    showScreen('screen-login');bindAuth();
-  };
-}
 
 // 로그인/회원가입 바인딩
 function bindAuth(){
@@ -351,8 +321,7 @@ onAuthStateChanged(auth,async user=>{
     if(msgs.length===0) addMsg('assistant',`안녕 ${user.displayName||''}! 나는 핏코치야 💪\n\n운동 기록, 루틴 추천, 음식 사진 칼로리 분석까지 다 돼!\n카메라 버튼(📷)을 눌러봐.`);
   } else {
     currentUser=null;
-    if(API_KEY) showScreen('screen-login');
-    else initApiKeyScreen();
+    showScreen('screen-login');
   }
 });
 
@@ -449,16 +418,16 @@ function buildSysFood(){
 \`\`\``;
 }
 
-// Claude API
+// Claude API — Netlify 프록시 경유
 async function callAPI(messages,system){
   const norm=messages.map(m=>({role:m.role,content:Array.isArray(m.content)?m.content.filter(b=>b.type==='text').map(b=>b.text).join('\n')||(m.imgPrev?'(사진)':''):(m.content||'')})).filter(m=>m.content.trim());
-  const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':API_KEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':true},body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:1000,system,messages:norm})});
+  const res=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:1000,system,messages:norm})});
   if(!res.ok){let d='';try{const e=await res.json();d=e?.error?.message||'';}catch{}throw new Error(`${res.status}${d?' — '+d:''}`);}
   return (await res.json()).content?.[0]?.text||'응답 오류';
 }
 async function callAPIImg(textMsgs,imageMsg,system){
   const messages=[...textMsgs.slice(-6).map(m=>({role:m.role,content:String(m.content||'')})),imageMsg];
-  const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':API_KEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':true},body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:1000,system,messages})});
+  const res=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:1000,system,messages})});
   if(!res.ok){let d='';try{const e=await res.json();d=e?.error?.message||'';}catch{}throw new Error(`${res.status}${d?' — '+d:''}`);}
   return (await res.json()).content?.[0]?.text||'응답 오류';
 }
@@ -608,7 +577,8 @@ function renderWorkoutTab(){
 }
 
 // 시작
-initApiKeyScreen();
+bindAuth();
+showScreen('screen-login');
 </script>
 </body>
 </html>
