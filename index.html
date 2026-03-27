@@ -401,22 +401,28 @@ async function parseAndSaveRoutineFromChat(text,dateStr){
 }
 
 async function detectAndSaveRoutineFromChat(reply,userText){
-  // 날짜 감지 (N월 M일)
-  const dm=userText.match(/(\d{1,2})월\s*(\d{1,2})일/);
-  // 날짜 없으면 오늘 날짜로
-  const now=new Date();
-  let dateStr;
+  const combined = userText + '\n' + reply;
+
+  // 날짜 감지 — 사용자 메시지와 Claude 응답 모두에서 탐색
+  let dateStr = null;
+  const dm = combined.match(/(\d{1,2})월\s*(\d{1,2})일/);
   if(dm){
+    const now=new Date();
     const targetDate=new Date(now.getFullYear(),parseInt(dm[1])-1,parseInt(dm[2]));
     dateStr=targetDate.toISOString().split('T')[0];
-  } else {
-    // "오늘", "이번 주" 등 → 오늘 날짜
-    if(userText.includes('오늘')||userText.includes('루틴')||userText.includes('짜줘')) dateStr=todayStr();
-    else return;
+  }
+  // 날짜 없으면 "오늘/내일" 키워드로 보완
+  if(!dateStr){
+    if(userText.includes('내일')||reply.includes('내일')){
+      const tmr=new Date();tmr.setDate(tmr.getDate()+1);
+      dateStr=tmr.toISOString().split('T')[0];
+    } else if(userText.includes('오늘')||userText.includes('루틴')||userText.includes('짜줘')){
+      dateStr=todayStr();
+    } else return;
   }
 
-  // 부위 감지
-  const mm=userText.match(/가슴|등|하체|어깨|팔|전신|스트레칭/);
+  // 부위 감지 — 사용자 메시지 우선, 없으면 응답에서 감지
+  const mm=(userText+' '+reply).match(/가슴|등|하체|어깨|팔|전신|스트레칭/);
   if(mm){
     if(!monthPlan[dateStr])monthPlan[dateStr]={muscle:'',routines:[],done:false,totalTime:null};
     if(!monthPlan[dateStr].muscle) monthPlan[dateStr].muscle=mm[0];
@@ -424,10 +430,10 @@ async function detectAndSaveRoutineFromChat(reply,userText){
 
   const saved=await parseAndSaveRoutineFromChat(reply,dateStr);
   if(saved){
-    // 저장 성공 시 운동 탭 전체 갱신
     const wTab=document.getElementById('workout-tab');
     if(wTab&&wTab.style.display!=='none') await renderWorkoutTab();
   }
+  return saved;
 }
 
 // ── 시스템 프롬프트 ───────────────────────────────────────────
@@ -510,8 +516,16 @@ async function send(){
       const reply=await callAPI(msgs.slice(-20),buildSysChat());
       if(parsed.length>0){await saveSession(parsed);await loadAll();}
       await detectAndSaveProfile(txt+reply);
-      await detectAndSaveRoutineFromChat(reply,txt);
+      const routineSaved=await detectAndSaveRoutineFromChat(reply,txt);
       hideTyping();addMsg('assistant',reply);
+      if(routineSaved){
+        // 루틴 저장됐음을 시각적으로 알림
+        setTimeout(()=>{
+          const savedDateMatch=(txt+reply).match(/(\d{1,2})월\s*(\d{1,2})일/);
+          const label=savedDateMatch?savedDateMatch[0]:'해당 날짜';
+          addMsg('assistant','✅ '+label+' 루틴이 운동 탭에 저장됐어! 운동 탭에서 확인해봐.');
+        },300);
+      }
     }catch(e){hideTyping();addMsg('assistant','오류: '+e.message+'\n\n• API 키 확인\n• Anthropic 크레딧 확인');}
   }
   setBusy(false);
@@ -572,8 +586,8 @@ function switchTab(id){
     document.getElementById(t+'-tab').style.display=t===id?(t==='chat'?'flex':'block'):'none';
     document.querySelector('[data-tab="'+t+'"]').classList.toggle('active',t===id);
   });
-  if(id==='nutrition')renderNutritionTab();
-  if(id==='workout')renderWorkoutTab();
+  if(id==='nutrition') renderNutritionTab();
+  if(id==='workout') renderWorkoutTab(); // async지만 fire-and-forget OK
 }
 window.switchTab=switchTab;
 
