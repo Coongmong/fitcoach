@@ -756,94 +756,130 @@ async function loadExerciseDB(){
   }
 }
 
-// 한글 운동명 → 영문 검색어
-function koToEn(name){
-  const map={
-    '스쿼트':'squat','바벨스쿼트':'barbell squat','프론트스쿼트':'front squat',
-    '벤치프레스':'bench press','덤벨벤치프레스':'dumbbell bench press',
-    '인클라인프레스':'incline bench press','디클라인프레스':'decline bench press',
-    '데드리프트':'deadlift','루마니안데드리프트':'romanian deadlift',
-    '바벨로우':'barbell row','덤벨로우':'dumbbell row','원암로우':'one arm row',
-    '랫풀다운':'lat pulldown','풀업':'pull up','친업':'chin up',
-    '시티드로우':'seated row','케이블로우':'cable row',
-    '오버헤드프레스':'overhead press','숄더프레스':'shoulder press',
-    '덤벨숄더프레스':'dumbbell shoulder press','아놀드프레스':'arnold press',
-    '사이드레터럴레이즈':'lateral raise','프론트레이즈':'front raise',
-    '리어레터럴레이즈':'rear delt raise','페이스풀':'face pull',
-    '바벨컬':'barbell curl','덤벨컬':'dumbbell curl','해머컬':'hammer curl',
-    '케이블컬':'cable curl','프리처컬':'preacher curl','인클라인컬':'incline curl',
-    '트라이셉스푸시다운':'triceps pushdown','오버헤드트라이셉스익스텐션':'overhead triceps extension',
-    '클로즈그립벤치프레스':'close grip bench press','딥스':'dips',
-    '런지':'lunge','불가리안스플릿스쿼트':'bulgarian split squat',
-    '레그프레스':'leg press','레그컬':'leg curl','레그익스텐션':'leg extension',
-    '힙스러스트':'hip thrust','글루트브릿지':'glute bridge',
-    '카프레이즈':'calf raise','시티드카프레이즈':'seated calf raise',
-    '체스트플라이':'chest fly','케이블플라이':'cable crossover',
-    '펙덱플라이':'pec deck','인클라인플라이':'incline fly',
-    '푸시업':'push up','와이드푸시업':'wide push up',
-    '플랭크':'plank','사이드플랭크':'side plank',
-    '크런치':'crunch','싯업':'sit up','레그레이즈':'leg raise',
-    '케이블크런치':'cable crunch','행잉레그레이즈':'hanging leg raise',
-    '풀오버':'pullover','시티드케이블로우':'seated cable row',
-    '덤벨숄더쉬러그':'shrug','바벨숄더쉬러그':'barbell shrug',
-    '업라이트로우':'upright row','벤트오버레이즈':'bent over raise',
-    '힙힌지':'hip hinge','케틀벨스윙':'kettlebell swing',
-    '버피':'burpee','마운틴클라이머':'mountain climber',
-    '점프스쿼트':'jump squat','박스점프':'box jump',
-    '스텝업':'step up','스플릿스쿼트':'split squat',
-    '굿모닝':'good morning','힙익스텐션':'hip extension',
-    '하이퍼익스텐션':'hyperextension','백익스텐션':'back extension',
-  };
-  for(const[k,v]of Object.entries(map)){
-    if(name.includes(k)) return v;
+// 한글 운동명 → free-exercise-db 정확한 폴더명 (직접 매핑)
+const KO_TO_FOLDER={
+  // ── 하체 ──
+  '스쿼트':'Barbell_Full_Squat','바벨스쿼트':'Barbell_Full_Squat',
+  '프론트스쿼트':'Barbell_Full_Squat','바디웨이트스쿼트':'Bodyweight_Squat',
+  '런지':'Barbell_Lunge','덤벨런지':'Dumbbell_Lunges',
+  '불가리안스플릿스쿼트':'Dumbbell_Lunges','스플릿스쿼트':'Dumbbell_Lunges',
+  '레그프레스':'Leg_Press','레그컬':'Lying_Leg_Curls',
+  '레그익스텐션':'Leg_Extensions','힙스러스트':'Barbell_Hip_Thrust',
+  '글루트브릿지':'Barbell_Glute_Bridge','카프레이즈':'Standing_Calf_Raises',
+  '시티드카프레이즈':'Seated_Calf_Raise','스텝업':'Barbell_Step_Ups',
+  // ── 가슴 ──
+  '벤치프레스':'Barbell_Bench_Press_-_Medium_Grip',
+  '바벨벤치프레스':'Barbell_Bench_Press_-_Medium_Grip',
+  '덤벨벤치프레스':'Dumbbell_Bench_Press',
+  '인클라인벤치프레스':'Barbell_Incline_Bench_Press_-_Medium_Grip',
+  '인클라인프레스':'Barbell_Incline_Bench_Press_-_Medium_Grip',
+  '디클라인프레스':'Decline_Dumbbell_Flyes',
+  '체스트플라이':'Dumbbell_Flyes','덤벨플라이':'Dumbbell_Flyes',
+  '케이블플라이':'Cable_Crossover','케이블크로스오버':'Cable_Crossover',
+  '인클라인플라이':'Incline_Dumbbell_Flyes',
+  '딥스':'Chest_Dip','체스트딥':'Chest_Dip',
+  '푸시업':'Push-Up',
+  // ── 등 ──
+  '데드리프트':'Barbell_Deadlift','바벨데드리프트':'Barbell_Deadlift',
+  '루마니안데드리프트':'Romanian_Deadlift',
+  '바벨로우':'Bent_Over_Barbell_Row','바벨벤트오버로우':'Bent_Over_Barbell_Row',
+  '덤벨로우':'Bent_Over_Two-Dumbbell_Row',
+  '원암로우':'One-Arm_Dumbbell_Row','원암덤벨로우':'One-Arm_Dumbbell_Row',
+  '랫풀다운':'Wide-Grip_Lat_Pulldown','와이드그립랫풀다운':'Wide-Grip_Lat_Pulldown',
+  '클로즈그립랫풀다운':'Close-Grip_Front_Lat_Pulldown',
+  '풀업':'Pullups','친업':'Pullups',
+  '시티드로우':'Seated_Cable_Rows','케이블로우':'Seated_Cable_Rows',
+  '업라이트로우':'Barbell_Upright_Row','풀오버':'Dumbbell_Pullover',
+  // ── 어깨 ──
+  '오버헤드프레스':'Barbell_Shoulder_Press','바벨숄더프레스':'Barbell_Shoulder_Press',
+  '숄더프레스':'Barbell_Shoulder_Press','덤벨숄더프레스':'Dumbbell_Shoulder_Press',
+  '아놀드프레스':'Arnold_Dumbbell_Press',
+  '사이드레터럴레이즈':'Side_Lateral_Raise','레터럴레이즈':'Side_Lateral_Raise',
+  '사이드레이즈':'Side_Lateral_Raise','레이터럴레이즈':'Side_Lateral_Raise',
+  '프론트레이즈':'Dumbbell_Front_Raise',
+  '리어레터럴레이즈':'Bent_Over_Dumbbell_Rear_Delt_Raise_With_Head_On_Bench',
+  '페이스풀':'Face_Pull',
+  '쉬러그':'Dumbbell_Shrug','바벨쉬러그':'Barbell_Shrug',
+  // ── 팔 ──
+  '바벨컬':'Barbell_Curl','이지바컬':'EZ-Bar_Curl',
+  '덤벨컬':'Dumbbell_Alternate_Bicep_Curl',
+  '해머컬':'Hammer_Curls','컨센트레이션컬':'Concentration_Curls',
+  '케이블컬':'Cable_Hammer_Curls_-_Rope',
+  '트라이셉스푸시다운':'Triceps_Pushdown','케이블푸시다운':'Triceps_Pushdown',
+  '오버헤드트라이셉스익스텐션':'Overhead_Triceps_Extension',
+  '스컬크러셔':'Lying_Triceps_Press',
+  '클로즈그립벤치프레스':'Close-Grip_Barbell_Bench_Press',
+  '킥백':'Tricep_Dumbbell_Kickback',
+  // ── 코어 ──
+  '플랭크':'Front_Plank','사이드플랭크':'Side_Plank',
+  '크런치':'Crunch','케이블크런치':'Cable_Crunch',
+  '싯업':'Sit-Up','레그레이즈':'Flat_Bench_Lying_Leg_Raise',
+  '행잉레그레이즈':'Hanging_Leg_Raise','러시안트위스트':'Russian_Twist',
+  // ── 전신/기타 ──
+  '버피':'Burpees','점프스쿼트':'Jump_Squat','박스점프':'Box_Jump',
+  '케틀벨스윙':'Kettlebell_Swing','굿모닝':'Good_Morning',
+  '하이퍼익스텐션':'Hyperextensions','백익스텐션':'Hyperextensions',
+  '마운틴클라이머':'Mountain_Climbers',
+};
+
+const KO_TO_EN_YT={
+  '스쿼트':'barbell squat form','벤치프레스':'bench press form','데드리프트':'deadlift form',
+  '사이드레터럴레이즈':'dumbbell lateral raise','레터럴레이즈':'dumbbell lateral raise',
+  '사이드레이즈':'dumbbell lateral raise','풀업':'pull up form','친업':'chin up form',
+  '오버헤드프레스':'overhead press form','랫풀다운':'lat pulldown form',
+  '힙스러스트':'hip thrust form','런지':'barbell lunge form',
+  '덤벨컬':'dumbbell bicep curl','해머컬':'hammer curl form',
+  '트라이셉스푸시다운':'triceps pushdown form','플랭크':'plank form',
+  '크런치':'crunch form','프론트레이즈':'dumbbell front raise',
+  '페이스풀':'face pull form','체스트플라이':'dumbbell chest fly','딥스':'chest dips form',
+};
+
+function getExerciseFolder(korName){
+  for(const[k,f]of Object.entries(KO_TO_FOLDER)){
+    if(korName===k||korName.replace(/\s/g,'').includes(k.replace(/\s/g,''))||
+       k.replace(/\s/g,'').includes(korName.replace(/\s/g,''))) return f;
   }
-  return name; // 영문이면 그대로
+  return null;
 }
 
-// exercises.json에서 영문명으로 검색 (정확도 우선)
-function searchExercise(db, query){
+function getYtQuery(korName){
+  for(const[k,v]of Object.entries(KO_TO_EN_YT)){
+    if(korName.includes(k)||k.includes(korName)) return v;
+  }
+  return korName+' exercise proper form tutorial';
+}
+
+// exercises.json — 폴더명 매핑 실패 시 폴백
+let exerciseDB=null,exerciseDBLoading=false;
+const EXDB_URL='https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/dist/exercises.json';
+const IMG_CDN='https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/';
+
+async function loadExerciseDB(){
+  if(exerciseDB) return exerciseDB;
+  if(exerciseDBLoading) return null;
+  exerciseDBLoading=true;
+  try{const res=await fetch(EXDB_URL);exerciseDB=await res.json();return exerciseDB;}
+  catch(e){console.warn('ExerciseDB:',e);return null;}
+}
+
+function searchExercise(db,query){
   if(!db||!query) return null;
   const q=query.toLowerCase().trim();
-  const words=q.split(' ').filter(w=>w.length>1);
-
-  // 1. 완전 일치
-  let found=db.find(e=>e.name.toLowerCase()===q&&e.images?.length>=2);
-  if(found) return found;
-
-  // 2. 모든 단어가 포함 + 단어 수 가장 근접한 것 (더 정확한 매칭)
+  const words=q.split(' ').filter(w=>w.length>2);
   const candidates=db.filter(e=>{
     if(!e.images||e.images.length<2) return false;
     const en=e.name.toLowerCase();
     return words.every(w=>en.includes(w));
   });
-  if(candidates.length>0){
-    // 단어 수 차이가 가장 적은 것 선택 (더 정확한 매칭)
-    candidates.sort((a,b)=>{
-      const aw=a.name.toLowerCase().split(' ').length;
-      const bw=b.name.toLowerCase().split(' ').length;
-      return Math.abs(aw-words.length)-Math.abs(bw-words.length);
-    });
-    return candidates[0];
-  }
-
-  // 3. 핵심 단어만으로 매칭 (마지막 폴백)
-  // 단, 한 단어면 부분 매칭 금지 (오매칭 방지)
-  if(words.length>=2){
-    found=db.find(e=>{
-      if(!e.images||e.images.length<2) return false;
-      const en=e.name.toLowerCase();
-      return words.some(w=>w.length>3&&en.includes(w));
-    });
-    return found||null;
-  }
-  return null;
+  if(!candidates.length) return null;
+  candidates.sort((a,b)=>Math.abs(a.name.split(' ').length-words.length)-Math.abs(b.name.split(' ').length-words.length));
+  return candidates[0];
 }
 
 async function addExerciseImages(exerciseName){
   const tips=Object.entries(EXERCISE_TIPS).find(([k])=>exerciseName.includes(k))?.[1]||DEFAULT_TIPS;
-  const enQuery=koToEn(exerciseName);
-  const ytQuery=encodeURIComponent(enQuery+' proper form tutorial');
-  const ytUrl='https://www.youtube.com/results?search_query='+ytQuery;
+  const ytUrl='https://www.youtube.com/results?search_query='+encodeURIComponent(getYtQuery(exerciseName));
+  const folder=getExerciseFolder(exerciseName); // 하드코딩 폴더명
 
   const list=document.getElementById('msg-list');
   const row=document.createElement('div');
@@ -861,52 +897,47 @@ async function addExerciseImages(exerciseName){
   list.appendChild(row);
   list.scrollTop=list.scrollHeight;
 
-  // DB 로드 & 이미지 검색
-  const db=await loadExerciseDB();
-  const exData=db?searchExercise(db,enQuery):null;
+  // 폴더명 있으면 바로 이미지 URL 생성, 없으면 DB 검색
+  let img0=null,img1=null,exName='';
+  if(folder){
+    img0=IMG_CDN+folder+'/0.jpg';
+    img1=IMG_CDN+folder+'/1.jpg';
+    exName=folder.replace(/_/g,' ');
+  } else {
+    // 하드코딩 실패 시 DB 검색 폴백
+    const db=await loadExerciseDB();
+    const ytEn=getYtQuery(exerciseName).split(' ').slice(0,2).join(' ');
+    const exData=db?searchExercise(db,ytEn):null;
+    if(exData&&exData.images?.length>=2){
+      img0=IMG_CDN+exData.images[0];
+      img1=IMG_CDN+exData.images[1];
+      exName=exData.name;
+    }
+  }
 
   const loadingEl=row.querySelector('#ex-img-loading');
   const contentEl=row.querySelector('#ex-img-content');
   if(loadingEl) loadingEl.style.display='none';
 
   let imgHtml='';
-  if(exData&&exData.images?.length>=2){
-    const img0=IMG_CDN+exData.images[0];
-    const img1=IMG_CDN+exData.images[1];
+  if(img0&&img1){
     imgHtml='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">'
       +'<div style="border:1px solid var(--gd);border-radius:10px;overflow:hidden">'
       +'<div style="font-size:9px;font-weight:600;color:var(--gr);padding:4px 8px;background:var(--gb)">✅ 시작 자세</div>'
-      +'<img src="'+img0+'" style="width:100%;display:block;max-height:140px;object-fit:cover;background:var(--s2)" loading="lazy" alt="시작자세" onerror="this.closest(\'div\').querySelector(\'div:first-child\').textContent=\'이미지 없음\'">'
+      +'<img src="'+img0+'" style="width:100%;display:block;max-height:140px;object-fit:cover;background:var(--s2)" loading="lazy" alt="시작자세" onerror="this.closest(\'div\').querySelector(\'div:first-child\').textContent=\'이미지 로드 실패\'">'
       +'</div>'
       +'<div style="border:1px solid #7f1d1d;border-radius:10px;overflow:hidden">'
       +'<div style="font-size:9px;font-weight:600;color:var(--re);padding:4px 8px;background:var(--rb)">🔄 동작 자세</div>'
-      +'<img src="'+img1+'" style="width:100%;display:block;max-height:140px;object-fit:cover;background:var(--s2)" loading="lazy" alt="동작자세" onerror="this.closest(\'div\').querySelector(\'div:first-child\').textContent=\'이미지 없음\'">'
-      +'</div></div>'
-      +'<div style="font-size:10px;color:var(--mu);margin-bottom:8px">📌 '+esc(exData.name)+' (영문명)</div>';
+      +'<img src="'+img1+'" style="width:100%;display:block;max-height:140px;object-fit:cover;background:var(--s2)" loading="lazy" alt="동작자세" onerror="this.closest(\'div\').querySelector(\'div:first-child\').textContent=\'이미지 로드 실패\'">'
+      +'</div></div>';
   } else {
-    // DB에서 못 찾으면 — 부위별 대표 운동 이미지로 대체
-    const fallbackFolder=
-      exerciseName.includes('가슴')||exerciseName.includes('벤치')||exerciseName.includes('플라이')||exerciseName.includes('체스트')?'Barbell_Bench_Press_-_Medium_Grip'
-      :exerciseName.includes('등')||exerciseName.includes('로우')||exerciseName.includes('풀')||exerciseName.includes('랫')?'Bent_Over_Barbell_Row'
-      :exerciseName.includes('하체')||exerciseName.includes('스쿼트')||exerciseName.includes('런지')||exerciseName.includes('레그')?'Barbell_Full_Squat'
-      :exerciseName.includes('어깨')||exerciseName.includes('숄더')||exerciseName.includes('프레스')||exerciseName.includes('레이즈')?'Barbell_Shoulder_Press'
-      :exerciseName.includes('이두')||exerciseName.includes('컬')?'Barbell_Curl'
-      :exerciseName.includes('삼두')||exerciseName.includes('트라이')||exerciseName.includes('딥')?'Triceps_Pushdown'
-      :exerciseName.includes('코어')||exerciseName.includes('복근')||exerciseName.includes('크런치')||exerciseName.includes('플랭크')?'Crunch'
-      :'Barbell_Full_Squat'; // 최후 폴백
-
-    const fb0=IMG_CDN+fallbackFolder+'/0.jpg';
-    const fb1=IMG_CDN+fallbackFolder+'/1.jpg';
+    // 이미지 없으면 SVG 폴백
+    const svg=buildExerciseSVG(exerciseName);
     imgHtml='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">'
-      +'<div style="border:1px solid var(--gd);border-radius:10px;overflow:hidden">'
-      +'<div style="font-size:9px;font-weight:600;color:var(--gr);padding:4px 8px;background:var(--gb)">✅ 시작 자세</div>'
-      +'<img src="'+fb0+'" style="width:100%;display:block;max-height:140px;object-fit:cover;background:var(--s2)" loading="lazy" alt="시작자세">'
-      +'</div>'
-      +'<div style="border:1px solid #7f1d1d;border-radius:10px;overflow:hidden">'
-      +'<div style="font-size:9px;font-weight:600;color:var(--re);padding:4px 8px;background:var(--rb)">🔄 동작 자세</div>'
-      +'<img src="'+fb1+'" style="width:100%;display:block;max-height:140px;object-fit:cover;background:var(--s2)" loading="lazy" alt="동작자세">'
-      +'</div></div>'
-      +'<div style="font-size:10px;color:var(--mu);margin-bottom:8px">📌 유사 운동 자세 참고 이미지</div>';
+      +'<div style="background:var(--gb);border:1px solid var(--gd);border-radius:10px;padding:8px;text-align:center">'
+      +'<div style="font-size:9px;font-weight:600;color:var(--gr);margin-bottom:4px">✅ 올바른 자세</div>'+svg.good+'</div>'
+      +'<div style="background:var(--rb);border:1px solid #7f1d1d;border-radius:10px;padding:8px;text-align:center">'
+      +'<div style="font-size:9px;font-weight:600;color:var(--re);margin-bottom:4px">⚠️ 잘못된 자세</div>'+svg.bad+'</div></div>';
   }
 
   if(contentEl) contentEl.innerHTML=
