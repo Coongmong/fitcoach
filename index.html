@@ -401,27 +401,43 @@ async function parseAndSaveRoutineFromChat(text,dateStr){
 }
 
 async function detectAndSaveRoutineFromChat(reply,userText){
-  const combined = userText + '\n' + reply;
-
-  // 날짜 감지 — 사용자 메시지와 Claude 응답 모두에서 탐색
   let dateStr = null;
-  const dm = combined.match(/(\d{1,2})월\s*(\d{1,2})일/);
-  if(dm){
+
+  // 1순위: 사용자 메시지에서 "N월 M일" 감지
+  const dmUser = userText.match(/(\d{1,2})월\s*(\d{1,2})일/);
+  if(dmUser){
     const now=new Date();
-    const targetDate=new Date(now.getFullYear(),parseInt(dm[1])-1,parseInt(dm[2]));
-    dateStr=targetDate.toISOString().split('T')[0];
+    dateStr=new Date(now.getFullYear(),parseInt(dmUser[1])-1,parseInt(dmUser[2])).toISOString().split('T')[0];
   }
-  // 날짜 없으면 "오늘/내일" 키워드로 보완
+
+  // 2순위: 사용자 메시지에서 "내일/오늘" 키워드
   if(!dateStr){
-    if(userText.includes('내일')||reply.includes('내일')){
+    if(userText.includes('내일')){
       const tmr=new Date();tmr.setDate(tmr.getDate()+1);
       dateStr=tmr.toISOString().split('T')[0];
     } else if(userText.includes('오늘')||userText.includes('루틴')||userText.includes('짜줘')){
       dateStr=todayStr();
-    } else return;
+    }
   }
 
-  // 부위 감지 — 사용자 메시지 우선, 없으면 응답에서 감지
+  // 3순위: Claude 응답에서 "N월 M일" 감지 (단, 오늘 날짜는 제외 — 이미 완료된 경우 방지)
+  if(!dateStr){
+    const dmReply = reply.match(/(\d{1,2})월\s*(\d{1,2})일/g);
+    if(dmReply){
+      for(const d of dmReply){
+        const m=d.match(/(\d{1,2})월\s*(\d{1,2})일/);
+        const now=new Date();
+        const candidate=new Date(now.getFullYear(),parseInt(m[1])-1,parseInt(m[2])).toISOString().split('T')[0];
+        if(candidate!==todayStr()){dateStr=candidate;break;} // 오늘 날짜 제외
+      }
+      // 오늘 날짜 외 없으면 — 루틴 관련 응답인지 확인 후 저장 스킵
+      if(!dateStr) return false;
+    }
+  }
+
+  if(!dateStr) return false;
+
+  // 부위 감지 — 사용자 메시지 우선
   const mm=(userText+' '+reply).match(/가슴|등|하체|어깨|팔|전신|스트레칭/);
   if(mm){
     if(!monthPlan[dateStr])monthPlan[dateStr]={muscle:'',routines:[],done:false,totalTime:null};
@@ -440,26 +456,52 @@ async function detectAndSaveRoutineFromChat(reply,userText){
 function buildSysChat(){
   const td=foodToday.reduce((a,f)=>({kcal:a.kcal+f.kcal,prot:a.prot+f.prot}),{kcal:0,prot:0});
   const rec=sessions.slice(0,4).map(s=>s.date+': '+s.exercises.map(e=>e.name+' '+e.weight+'kg×'+e.reps+'×'+e.sets).join(', ')).join('\n')||'없음';
-  const todayMuscle=(monthPlan[todayStr()]?.muscle)||null;
-  const planSummary=Object.entries(monthPlan).filter(([,p])=>p.muscle).slice(0,10)
-    .map(([d,p])=>{const dt=new Date(d+'T00:00:00');return (dt.getMonth()+1)+'/'+(dt.getDate())+':'+p.muscle;}).join(', ')||'없음';
   const env=[
     userProfile?.workoutTime?'가능시간:'+userProfile.workoutTime:null,
     userProfile?.workoutPlace?'장소:'+userProfile.workoutPlace:null,
     userProfile?.level?'레벨:'+userProfile.level:null,
   ].filter(Boolean).join(' | ')||null;
+
+  // 이번 달 플랜 상세 — 날짜별 부위 + 루틴 목록 + 완료 여부
+  const planDetail = Object.entries(monthPlan)
+    .filter(([,p])=>p.muscle)
+    .slice(0,14)
+    .map(([d,p])=>{
+      const dt=new Date(d+'T00:00:00');
+      const label=(dt.getMonth()+1)+'/'+(dt.getDate());
+      const routineNames=(p.routines||[]).map(r=>r.name).join(',');
+      const status=p.done?'완료':((p.routines||[]).length>0?'루틴있음':'부위만');
+      return label+'('+p.muscle+'/'+status+(routineNames?'/'+routineNames:'')+')';
+    }).join(' | ')||'없음';
+
+  // 오늘 플랜 상세
+  const todayPlan=monthPlan[todayStr()]||{};
+  const todayDetail='부위:'+(todayPlan.muscle||'미설정')
+    +' | 완료:'+(todayPlan.done?'✅ 완료':'미완료')
+    +' | 루틴:'+(todayPlan.routines?.map(r=>r.name+'('+r.sets+'세트)').join(', ')||'없음');
+
+  // 내일 플랜
+  const tmr=new Date();tmr.setDate(tmr.getDate()+1);
+  const tmrStr=tmr.toISOString().split('T')[0];
+  const tmrPlan=monthPlan[tmrStr]||{};
+  const tmrDetail='부위:'+(tmrPlan.muscle||'미설정')
+    +' | 루틴:'+(tmrPlan.routines?.map(r=>r.name+'('+r.sets+'세트)').join(', ')||'없음');
+
   return '당신은 "핏코치" — 운동·영양 전문 AI 코치. 사용자: '+(currentUser?.displayName||'')+'. 반말로 친근하게 대화.\n\n'
     +'[프로필] 목표:'+(userProfile?.goal||'미설정')+(env?' | '+env:'')+'\n'
+    +'[오늘('+todayStr()+')] '+todayDetail+'\n'
+    +'[내일('+tmrStr+')] '+tmrDetail+'\n'
     +'[오늘 영양] '+td.kcal+'kcal/'+GOAL_KCAL()+'kcal | 단백질 '+Math.round(td.prot)+'g/'+GOAL_PROT()+'g\n'
-    +'[최근 운동] '+rec+'\n'
-    +'[이번 달 플랜] '+planSummary+'\n'
-    +'[오늘 운동 부위] '+(todayMuscle||'미설정')+'\n\n'
+    +'[최근 운동 기록] '+rec+'\n'
+    +'[이번 달 플랜] '+planDetail+'\n\n'
     +'[행동 규칙]\n'
     +'- kg×회×세트 패턴 → "✅ 기록됐어!" PR이면 "🎉 신기록!"\n'
-    +'- 루틴 요청 시: 오늘 부위가 설정돼 있으면 부위를 다시 묻지 말고 바로 루틴 제시\n'
+    +'- 루틴 요청 시: 해당 날짜 부위가 이미 설정돼 있으면 부위를 다시 묻지 말고 바로 루틴 제시\n'
+    +'- 해당 날짜에 루틴이 이미 있으면 → 기존 루틴을 먼저 보여주고 "바꿀까?"라고 물어볼 것\n'
+    +'- 오늘 운동이 이미 완료된 경우 → 완료됐음을 인지하고 내일 또는 다음 운동 관련 조언\n'
     +'- 운동 환경(시간/장소/레벨)이 프로필에 저장돼 있으면 다시 묻지 말 것. 없을 때만 1회 질문\n'
     +'- 운동 질문 → 주동근·자세·주의사항 순\n'
-    +'- 루틴 출력 시 "운동명 | N세트" 형식으로 목록 제시';
+    +'- 루틴 출력 시 반드시 "운동명 | N세트" 형식으로 번호 목록 제시 (파싱에 필요)';
 }
 
 function buildSysFood(){
