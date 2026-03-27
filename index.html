@@ -297,7 +297,13 @@ async function loadAll(){
   try{const sq=query(uCol('sessions'),where('date','>=',cutStr),orderBy('date','desc'));const ss=await getDocs(sq);sessions=ss.docs.map(d=>d.data());}catch{sessions=[];}
   const wv={};getWeek().forEach(d=>{wv[d]=0;});sessions.forEach(s=>{if(wv[s.date]!==undefined)wv[s.date]+=s.totalVolume||0;});weekVol=wv;
   try{const ps=await getDocs(uCol('prs'));prs={};ps.docs.forEach(d=>{prs[d.id]=d.data();});}catch{prs={};}
-  try{const fq=query(uCol('foods'),where('date','>=',cutStr),orderBy('date','desc'),orderBy('at','desc'));const fs=await getDocs(fq);foodAll=fs.docs.map(d=>d.data());}catch{foodAll=[];}
+  try{
+    // at 복합정렬 제거 — Firestore 색인 불필요, 클라이언트에서 정렬
+    const fq=query(uCol('foods'),where('date','>=',cutStr),orderBy('date','desc'));
+    const fs=await getDocs(fq);
+    foodAll=fs.docs.map(d=>d.data());
+    foodAll.sort((a,b)=>new Date(b.at||b.date)-new Date(a.at||a.date));
+  }catch(e){console.warn('음식 로드 오류:',e);foodAll=[];}
   foodToday=foodAll.filter(f=>f.date===todayStr());
   await loadMonthPlan();
 }
@@ -570,17 +576,34 @@ function buildSysFood(){
 }
 
 // ── API 호출 ─────────────────────────────────────────────────
+// DEPLOY_MODE = true  → Vercel 프록시 경유 (GitHub 배포용)
+// DEPLOY_MODE = false → 브라우저 직접 호출 (로컬 테스트용)
+const DEPLOY_MODE = true;
+const API_KEY_LOCAL = ''; // 로컬 테스트 시 여기에 sk-ant-... 입력
+
+async function fetchClaude(body){
+  if(DEPLOY_MODE){
+    const res=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(!res.ok){let d='';try{const e=await res.json();d=e?.error?.message||'';}catch{}throw new Error(res.status+(d?' — '+d:''));}
+    return (await res.json()).content?.[0]?.text||'응답 오류';
+  } else {
+    const key=API_KEY_LOCAL||localStorage.getItem('fc:apikey')||'';
+    if(!key) throw new Error('API 키를 API_KEY_LOCAL에 입력해줘');
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':true},
+      body:JSON.stringify(body)});
+    if(!res.ok){let d='';try{const e=await res.json();d=e?.error?.message||'';}catch{}throw new Error(res.status+(d?' — '+d:''));}
+    return (await res.json()).content?.[0]?.text||'응답 오류';
+  }
+}
+
 async function callAPI(messages,system){
   const norm=messages.map(m=>({role:m.role,content:Array.isArray(m.content)?m.content.filter(b=>b.type==='text').map(b=>b.text).join('\n')||(m.imgPrev?'(사진)':''):(m.content||'')})).filter(m=>m.content.trim());
-  const res=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:1000,system,messages:norm})});
-  if(!res.ok){let d='';try{const e=await res.json();d=e?.error?.message||'';}catch{}throw new Error(res.status+(d?' — '+d:''));}
-  return (await res.json()).content?.[0]?.text||'응답 오류';
+  return fetchClaude({model:'claude-sonnet-4-5',max_tokens:1000,system,messages:norm});
 }
 async function callAPIImg(textMsgs,imageMsg,system){
   const messages=[...textMsgs.slice(-6).map(m=>({role:m.role,content:String(m.content||'')})),imageMsg];
-  const res=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:2000,system,messages})});
-  if(!res.ok){let d='';try{const e=await res.json();d=e?.error?.message||'';}catch{}throw new Error(res.status+(d?' — '+d:''));}
-  return (await res.json()).content?.[0]?.text||'응답 오류';
+  return fetchClaude({model:'claude-sonnet-4-5',max_tokens:2000,system,messages});
 }
 
 // ── 전송 ─────────────────────────────────────────────────────
@@ -698,16 +721,96 @@ function barHTML(h,color,label,sub){
 }
 
 // ── 영양 탭 ──────────────────────────────────────────────────
+// ── 영양 탭 ──────────────────────────────────────────────────
+function getMonthDatesNut(){
+  const now=new Date();const y=now.getFullYear(),m=now.getMonth();
+  const days=[];const total=new Date(y,m+1,0).getDate();
+  for(let d=1;d<=total;d++){days.push(makeDateStr(y,m+1,d));}
+  return days;
+}
+
 function renderNutritionTab(){
   const el=document.getElementById('nutrition-tab');
-  const tKcal=foodToday.reduce((s,f)=>s+f.kcal,0),tProt=foodToday.reduce((s,f)=>s+f.prot,0),tCarb=foodToday.reduce((s,f)=>s+f.carb,0),tFat=foodToday.reduce((s,f)=>s+f.fat,0);
+  const tKcal=foodToday.reduce((s,f)=>s+f.kcal,0);
+  const tProt=foodToday.reduce((s,f)=>s+f.prot,0);
+  const tCarb=foodToday.reduce((s,f)=>s+f.carb,0);
+  const tFat=foodToday.reduce((s,f)=>s+f.fat,0);
   const kPct=Math.round((tKcal/GOAL_KCAL())*100);
   const GOAL_CARB=280,GOAL_FAT=70;
-  const w7={};getWeek().forEach(d=>{w7[d]=0;});foodAll.forEach(f=>{if(w7[f.date]!==undefined)w7[f.date]+=f.kcal;});
+
+  // 7일 칼로리
+  const w7={};getWeek().forEach(d=>{w7[d]=0;});
+  foodAll.forEach(f=>{if(w7[f.date]!==undefined)w7[f.date]+=f.kcal;});
   const maxK=Math.max(...Object.values(w7),GOAL_KCAL(),1);
   const rc=kPct>110?C.re:kPct>90?C.ye:C.or;
+
+  // 월간 캘린더 — 날짜별 칼로리 합산
+  const monthDates=getMonthDatesNut();
+  const monthKcal={};
+  foodAll.forEach(f=>{if(!monthKcal[f.date])monthKcal[f.date]=0;monthKcal[f.date]+=f.kcal;});
+  const now=new Date();
+  const monthLabel=now.getFullYear()+'년 '+(now.getMonth()+1)+'월';
+
+  // 월간 캘린더 HTML
+  let calHtml='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:6px">';
+  ['일','월','화','수','목','금','토'].forEach(d=>{calHtml+='<div style="font-size:9px;color:var(--mu);text-align:center;padding:3px 0">'+d+'</div>';});
+  calHtml+='</div><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px">';
+  const firstDow=new Date(now.getFullYear(),now.getMonth(),1).getDay();
+  for(let i=0;i<firstDow;i++) calHtml+='<div></div>';
+  monthDates.forEach(dateStr=>{
+    const dt=new Date(dateStr+'T00:00:00');
+    const dd=dt.getDate();
+    const kcal=monthKcal[dateStr]||0;
+    const isToday=dateStr===todayStr();
+    const hasFuture=dt>now&&!isToday;
+    const pct=kcal>0?Math.min(kcal/GOAL_KCAL(),1):0;
+    const dotColor=kcal===0?'transparent':pct>1.1?C.re:pct>0.9?C.ye:C.gr;
+    calHtml+='<div style="display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 2px;border-radius:8px;background:'+(isToday?'var(--s3)':'transparent')+';border:1px solid '+(isToday?'var(--b2)':'transparent')+'">'
+      +'<span style="font-size:11px;color:'+(isToday?'var(--tx)':hasFuture?'var(--mu)':'var(--mu2)')+(isToday?';font-weight:600':'')+'">'+(dd)+'</span>'
+      +'<div style="width:5px;height:5px;border-radius:50%;background:'+dotColor+'"></div>'
+      +'</div>';
+  });
+  calHtml+='</div>';
+
+  // 오늘 먹은 음식 — 시간 표시
+  const foodListHtml=foodToday.length===0
+    ?'<div class="empty-state"><div style="font-size:28px;margin-bottom:8px">📷</div><div style="font-size:13px;color:'+C.mu+';margin-bottom:4px">아직 오늘 음식 기록이 없어</div><div style="font-size:11px;color:'+C.mu2+'">채팅 탭 카메라로 음식 사진을 찍어봐</div></div>'
+    :foodToday.map(f=>{
+      const atDate=f.at?new Date(f.at):null;
+      const timeStr=atDate?(atDate.getHours()+':'+String(atDate.getMinutes()).padStart(2,'0')):'';
+      return '<div class="food-row">'
+        +(f.imgDataUrl?'<img class="food-thumb" src="'+esc(f.imgDataUrl)+'" alt="">':'<div class="food-ph"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="'+C.mu+'" stroke-width="1.5" stroke-linecap="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/></svg></div>')
+        +'<div style="flex:1;min-width:0">'
+        +'<div style="display:flex;align-items:center;justify-content:space-between;gap:6px">'
+        +'<div style="font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(f.name)+'</div>'
+        +'<div style="font-size:10px;color:var(--mu);flex-shrink:0">'+timeStr+'</div>'
+        +'</div>'
+        +'<div style="font-size:11px;color:'+C.mu+';margin-top:2px">'+esc(f.portion||'')+'</div>'
+        +'<div style="display:flex;gap:4px;margin-top:3px">'
+        +'<span class="nut-tag" style="background:'+C.bb+';color:'+C.bl+'">단 '+Math.round(f.prot)+'g</span>'
+        +'<span class="nut-tag" style="background:'+C.ob+';color:'+C.or+'">탄 '+Math.round(f.carb)+'g</span>'
+        +'<span class="nut-tag" style="background:'+C.pb+';color:'+C.pu+'">지 '+Math.round(f.fat)+'g</span>'
+        +'</div></div>'
+        +'<div style="text-align:right;flex-shrink:0">'
+        +'<div style="font-size:17px;font-weight:700;color:'+C.or+';font-family:\'DM Mono\',monospace;line-height:1">'+f.kcal+'</div>'
+        +'<div style="font-size:9px;color:'+C.mu+'">kcal</div>'
+        +'</div></div>';
+    }).join('')
+    +(foodToday.length>0?'<div style="display:flex;justify-content:space-between;padding:8px 0 0;margin-top:4px"><span style="font-size:12px;color:'+C.mu+'">합계</span><span style="font-size:13px;font-weight:700;color:'+C.or+';font-family:\'DM Mono\',monospace">'+tKcal+' kcal</span></div>':'');
+
+  // AI 영양 분석 알림 생성
+  const nutAlert=generateNutAlert(tKcal,tProt,tCarb,tFat);
+
   el.innerHTML=
-  '<div class="card"><div class="sec-lbl">오늘 칼로리</div>'
+  // 월간 캘린더
+  '<div class="card">'
+  +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'
+  +'<div class="sec-lbl" style="margin-bottom:0">'+monthLabel+' 식단 현황</div>'
+  +'<div style="display:flex;gap:10px"><span style="font-size:10px;color:'+C.gr+'">● 적정</span><span style="font-size:10px;color:'+C.ye+'">● 초과</span><span style="font-size:10px;color:'+C.re+'">● 과다</span></div>'
+  +'</div>'+calHtml+'</div>'
+
+  // 오늘 칼로리 요약
+  +'<div class="card"><div class="sec-lbl">오늘 칼로리</div>'
   +'<div style="display:flex;align-items:center;gap:18px">'
   +'<div class="ring-wrap">'+ringHTML(kPct,rc,80,8)+'<div class="ring-center"><span style="font-size:17px;font-weight:700;line-height:1">'+tKcal+'</span><span style="font-size:9px;color:'+C.mu+'">kcal</span></div></div>'
   +'<div style="flex:1"><div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;margin-bottom:10px">'
@@ -715,20 +818,54 @@ function renderNutritionTab(){
   +'<div><div style="font-size:10px;color:'+C.mu+'">잔여</div><div style="font-size:13px;font-weight:600;color:'+(GOAL_KCAL()-tKcal<0?C.re:C.gr)+'">'+Math.max(0,GOAL_KCAL()-tKcal)+' kcal</div></div></div>'
   +'<div style="height:5px;background:'+C.br+';border-radius:3px;overflow:hidden"><div style="height:100%;width:'+Math.min(kPct,100)+'%;background:'+rc+';border-radius:3px"></div></div>'
   +'<div style="font-size:10px;color:'+C.mu+';margin-top:4px;text-align:right">'+kPct+'%</div></div></div></div>'
+
+  // 3대 영양소
   +'<div class="nut-grid">'+[['단백질',Math.round(tProt),GOAL_PROT(),'g',C.bl,C.bb],['탄수화물',Math.round(tCarb),GOAL_CARB,'g',C.or,C.ob],['지방',Math.round(tFat),GOAL_FAT,'g',C.pu,C.pb]].map(([lbl,val,goal,unit,color])=>
     '<div class="nut-card"><div class="ring-wrap">'+ringHTML(Math.round((val/goal)*100),color,52,5)+'</div>'
     +'<div style="font-size:16px;font-weight:700">'+val+'<span style="font-size:9px;color:'+C.mu+';font-weight:400">'+unit+'</span></div>'
     +'<div style="font-size:9px;color:'+C.mu+'">'+lbl+'</div><div style="font-size:9px;color:'+color+'">/'+goal+unit+'</div></div>').join('')+'</div>'
-  +'<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div class="sec-lbl" style="margin-bottom:0">오늘 먹은 음식</div><button onclick="switchTab(\'chat\')" style="font-size:11px;color:'+C.or+';background:transparent;border:1px solid '+C.b2+';border-radius:7px;padding:3px 10px;font-family:inherit">+ 사진 추가</button></div>'
-  +(foodToday.length===0?'<div class="empty-state"><div style="font-size:32px;margin-bottom:8px">📷</div><div style="font-size:13px;color:'+C.mu+';margin-bottom:6px">아직 오늘 음식 기록이 없어</div><div style="font-size:11px;color:'+C.mu2+'">채팅 탭의 카메라 버튼으로 찍어봐</div></div>'
-  :foodToday.map(f=>'<div class="food-row">'+(f.imgDataUrl?'<img class="food-thumb" src="'+esc(f.imgDataUrl)+'" alt="">':'<div class="food-ph"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="'+C.mu+'" stroke-width="1.5" stroke-linecap="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/></svg></div>')
-  +'<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(f.name)+'</div>'
-  +'<div style="font-size:11px;color:'+C.mu+';margin-top:2px">'+esc(f.portion||'')+'</div>'
-  +'<div style="display:flex;gap:4px;margin-top:4px"><span class="nut-tag" style="background:'+C.bb+';color:'+C.bl+'">단 '+Math.round(f.prot)+'g</span><span class="nut-tag" style="background:'+C.ob+';color:'+C.or+'">탄 '+Math.round(f.carb)+'g</span><span class="nut-tag" style="background:'+C.pb+';color:'+C.pu+'">지 '+Math.round(f.fat)+'g</span></div></div>'
-  +'<div style="text-align:right;flex-shrink:0"><div style="font-size:18px;font-weight:700;color:'+C.or+';font-family:\'DM Mono\',monospace;line-height:1">'+f.kcal+'</div><div style="font-size:9px;color:'+C.mu+'">kcal</div></div></div>').join('')
-  +(foodToday.length>0?'<div style="display:flex;justify-content:space-between;padding:10px 0 0;margin-top:4px"><span style="font-size:12px;color:'+C.mu+'">합계</span><span style="font-size:13px;font-weight:700;color:'+C.or+';font-family:\'DM Mono\',monospace">'+tKcal+' kcal</span></div>':''))
-  +'</div>'
-  +'<div class="card"><div class="sec-lbl">최근 7일 칼로리</div><div class="bar-row">'+getWeek().map((date,i)=>{const k=w7[date]||0,isT=i===6,over=k>GOAL_KCAL();const h=k>0?Math.max(4,(k/maxK)*60):4;const color=isT?C.or:over?C.re:k>0?'#7c3f0e':C.br;return barHTML(h,color,DAY[new Date(date).getDay()],k>0?k:'');}).join('')+'</div></div>';
+
+  // 오늘 먹은 음식
+  +'<div class="card"><div class="sec-lbl">오늘 먹은 음식</div>'+foodListHtml+'</div>'
+
+  // 7일 칼로리 그래프
+  +'<div class="card"><div class="sec-lbl">최근 7일 칼로리</div><div class="bar-row">'+getWeek().map((date,i)=>{
+    const k=w7[date]||0,isT=i===6,over=k>GOAL_KCAL();
+    const h=k>0?Math.max(4,(k/maxK)*60):4;
+    const color=isT?C.or:over?C.re:k>0?'#7c3f0e':C.br;
+    return barHTML(h,color,DAY[new Date(date).getDay()],k>0?k:'');
+  }).join('')+'</div>'
+  +'<div style="display:flex;align-items:center;gap:6px;margin-top:8px;justify-content:flex-end">'
+  +'<div style="width:16px;border-top:1px dashed '+C.mu+';opacity:.5"></div>'
+  +'<span style="font-size:10px;color:'+C.mu+'">목표 '+GOAL_KCAL()+'kcal</span></div></div>'
+
+  // AI 영양 분석 알림
+  +(nutAlert?'<div class="card" style="border-color:var(--bl);background:var(--bb)">'
+  +'<div style="display:flex;align-items:flex-start;gap:10px">'
+  +'<span style="font-size:18px;flex-shrink:0">💡</span>'
+  +'<div><div style="font-size:11px;font-weight:500;color:var(--bl);margin-bottom:4px;letter-spacing:.05em;text-transform:uppercase">오늘의 영양 분석</div>'
+  +'<div style="font-size:13px;line-height:1.6;color:var(--tx)">'+nutAlert+'</div></div></div></div>':'');
+}
+
+function generateNutAlert(kcal,prot,carb,fat){
+  const goalKcal=GOAL_KCAL(),goalProt=GOAL_PROT(),goalCarb=280,goalFat=70;
+  const msgs=[];
+  // 단백질 부족
+  if(prot<goalProt*0.6) msgs.push('단백질이 목표의 '+Math.round(prot/goalProt*100)+'%야. 닭가슴살, 달걀, 두부를 추가해봐 🥚');
+  else if(prot>=goalProt*0.9) msgs.push('단백질 섭취 훌륭해! 근육 회복에 충분한 단백질을 채웠어 💪');
+  // 칼로리 과다
+  if(kcal>goalKcal*1.15) msgs.push('오늘 칼로리가 목표보다 '+Math.round(kcal-goalKcal)+'kcal 초과했어. 저녁은 가볍게 먹어봐 🌙');
+  else if(kcal<goalKcal*0.5&&new Date().getHours()>=18) msgs.push('칼로리가 목표의 절반도 안 됐어. 영양가 있는 식사를 꼭 챙겨봐 🍱');
+  // 운동 기록 기반 (최근 세션 있으면 단백질 더 강조)
+  const recentSession=sessions.find(s=>s.date===todayStr());
+  if(recentSession&&prot<goalProt*0.7) msgs.push('오늘 운동했으니 단백질을 더 챙겨봐. 운동 후 '+Math.round(goalProt-prot)+'g가 더 필요해 💪');
+  // 지방 과다
+  if(fat>goalFat*1.3) msgs.push('지방 섭취가 좀 많아. 튀김류보다 삶거나 구운 음식으로 바꿔봐 🥗');
+  // 탄수화물 과다
+  if(carb>goalCarb*1.3) msgs.push('탄수화물이 목표보다 많아. 다음 끼니는 채소와 단백질 위주로 먹어봐 🥦');
+  // 아무 데이터 없으면
+  if(kcal===0) return '오늘 아직 음식 기록이 없어. 채팅에서 음식 사진을 올리면 자동으로 분석해줄게 📷';
+  return msgs.length>0?msgs[0]:'오늘 영양 균형이 좋아! 이대로 유지해봐 ✨';
 }
 
 // ── 운동 탭 ──────────────────────────────────────────────────
