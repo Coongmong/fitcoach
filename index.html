@@ -188,8 +188,9 @@ const auth = getAuth(fbApp);
 const fdb  = getFirestore(fbApp);
 
 const C={bg:'#0c0e14',sf:'#141720',s2:'#1c2030',s3:'#232740',br:'#252836',b2:'#2e3350',tx:'#e8eaf2',mu:'#5a6080',mu2:'#8892b0',gr:'#22c55e',gd:'#166534',gb:'#0d2018',or:'#f97316',ob:'#1c1008',bl:'#60a5fa',bb:'#0d1a30',pu:'#a78bfa',pb:'#150f2a',re:'#f87171',rb:'#1c0d0d',ye:'#fbbf24'};
-const todayStr=()=>new Date().toISOString().split('T')[0];
-const getWeek=()=>Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()-(6-i));return d.toISOString().split('T')[0];});
+function makeDateStr(year,month1,day){return year+'-'+String(month1).padStart(2,'0')+'-'+String(day).padStart(2,'0');}
+const todayStr=()=>{const t=new Date();return makeDateStr(t.getFullYear(),t.getMonth()+1,t.getDate());};
+const getWeek=()=>Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()-(6-i));return makeDateStr(d.getFullYear(),d.getMonth()+1,d.getDate());});
 const DAY=['일','월','화','수','목','금','토'];
 const DAY_FULL=['일요일','월요일','화요일','수요일','목요일','금요일','토요일'];
 const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -405,50 +406,57 @@ function extractJson(text){
   return null;
 }
 
+// 날짜 문자열 안전 생성 (위에서 이미 정의됨)
+function localToday(){const t=new Date();return makeDateStr(t.getFullYear(),t.getMonth()+1,t.getDate());}
+
+// 텍스트에서 날짜 추출 — "N월 M일" 또는 "N/M" 형식
+function extractDateStr(text){
+  const y=new Date().getFullYear();
+  const m1=text.match(/(\d{1,2})월\s*(\d{1,2})일/);
+  if(m1) return makeDateStr(y,parseInt(m1[1]),parseInt(m1[2]));
+  const m2=text.match(/(\d{1,2})\/(\d{1,2})(?:\s*[\(（][가-힣]{1,3}[\)）])?/);
+  if(m2) return makeDateStr(y,parseInt(m2[1]),parseInt(m2[2]));
+  return null;
+}
+
 async function parseAndSaveRoutineFromChat(text,dateStr){
   const lines=text.split('\n');
   const items=[];
   for(const line of lines){
-    const cleaned=line.replace(/^\s*[\d]+[.)]\s*/,'').replace(/^\s*[-*•]\s*/,'').trim();
-    if(!cleaned)continue;
-    // 패턴 1: "운동명 | N세트"
+    const raw=line.trim();
+    if(!raw||raw.length<3) continue;
+    // 헤더/섹션/날짜 라인 제외
+    if(raw.startsWith('---')||raw.startsWith('===')||raw.match(/^\d{1,2}\/\d{1,2}/)||
+       raw.match(/^\[.+\]/)||raw.includes('루틴')||raw.includes('워밍업')||
+       raw.includes('마무리')||raw.includes('세트당')||raw.includes('세트 간')||
+       raw.includes('이렇게')||raw.includes('이대로')||raw.includes('가자')||
+       raw.includes('어때')||raw.includes('무게는')||raw.includes('휴식은')) continue;
+
+    const cleaned=raw.replace(/^\s*[\d]+[.)]\s*/,'').replace(/^\s*[-*•]\s*/,'').trim();
+    if(!cleaned||cleaned.length<2) continue;
+
     const m1=cleaned.match(/^([^|]+?)\s*\|\s*(\d+)\s*세트/);
-    // 패턴 2: "운동명 N세트"
     const m2=cleaned.match(/^([가-힣a-zA-Z()\s]+?)\s+(\d+)\s*세트/);
     const m=m1||m2;
     if(m){
       const name=m[1].trim().replace(/\s+/g,' ');
       const sets=parseInt(m[2]);
-      // 워밍업/마무리/섹션 헤더 제외
-      if(name&&sets&&!name.includes('[')&&!name.includes('워밍업')&&!name.includes('마무리')&&name.length>=2){
+      if(name&&sets&&sets<=20&&name.length>=2&&!name.match(/^\d/)&&!name.includes('/')&&!name.includes('루틴')){
         items.push({name,sets,doneTime:null});
       }
     }
   }
   if(items.length>0){
     if(!monthPlan[dateStr])monthPlan[dateStr]={muscle:'',routines:[],done:false,totalTime:null};
-    // 기존 루틴 교체 — done/totalTime은 유지하지 않고 초기화 (새 루틴이므로)
     monthPlan[dateStr].routines=items;
     monthPlan[dateStr].done=false;
     monthPlan[dateStr].totalTime=null;
     await saveMonthPlan();
-    // 운동 탭 UI 즉시 갱신
     const wTab=document.getElementById('workout-tab');
     if(wTab&&wTab.style.display!=='none'){
-      // 달력 행 상태 업데이트
       const row=document.getElementById('day-row-'+dateStr);
-      if(row){
-        const lb=row.querySelector('.muscle-label');
-        if(lb&&monthPlan[dateStr].muscle) lb.textContent=monthPlan[dateStr].muscle;
-        // 완료/진행중 뱃지 제거 (루틴 교체됐으므로)
-        const badge=row.querySelector('.done-badge');if(badge)badge.remove();
-      }
-      // 패널이 해당 날짜로 열려있으면 즉시 갱신
-      if(activeDayKey===dateStr){
-        activeExIdx=null;doneSet=0;
-        clearInterval(setTimer);setTimer=null;
-        renderDayPanel(dateStr);
-      }
+      if(row){const lb=row.querySelector('.muscle-label');if(lb&&monthPlan[dateStr].muscle)lb.textContent=monthPlan[dateStr].muscle;const b=row.querySelector('.done-badge');if(b)b.remove();}
+      if(activeDayKey===dateStr){activeExIdx=null;doneSet=0;clearInterval(setTimer);setTimer=null;renderDayPanel(dateStr);}
     }
     return true;
   }
@@ -456,43 +464,33 @@ async function parseAndSaveRoutineFromChat(text,dateStr){
 }
 
 async function detectAndSaveRoutineFromChat(reply,userText){
-  let dateStr = null;
+  if(!reply.includes('세트')) return false; // 루틴 아니면 스킵
 
-  // 1순위: 사용자 메시지에서 "N월 M일" 감지
-  const dmUser = userText.match(/(\d{1,2})월\s*(\d{1,2})일/);
-  if(dmUser){
-    const now=new Date();
-    dateStr=new Date(now.getFullYear(),parseInt(dmUser[1])-1,parseInt(dmUser[2])).toISOString().split('T')[0];
+  let dateStr=null;
+  const today=localToday();
+  const t=new Date();t.setDate(t.getDate()+1);
+  const tomorrow=makeDateStr(t.getFullYear(),t.getMonth()+1,t.getDate());
+
+  // 1순위: 사용자 메시지에서 날짜
+  dateStr=extractDateStr(userText);
+
+  // 2순위: "내일/오늘" 키워드
+  if(!dateStr){
+    if(userText.includes('내일')) dateStr=tomorrow;
+    else if(userText.includes('오늘')||userText.includes('루틴')||userText.includes('짜줘')) dateStr=today;
   }
 
-  // 2순위: 사용자 메시지에서 "내일/오늘" 키워드
+  // 3순위: Claude 응답 줄별 날짜 감지 (오늘 제외)
   if(!dateStr){
-    if(userText.includes('내일')){
-      const tmr=new Date();tmr.setDate(tmr.getDate()+1);
-      dateStr=tmr.toISOString().split('T')[0];
-    } else if(userText.includes('오늘')||userText.includes('루틴')||userText.includes('짜줘')){
-      dateStr=todayStr();
-    }
-  }
-
-  // 3순위: Claude 응답에서 "N월 M일" 감지 (단, 오늘 날짜는 제외 — 이미 완료된 경우 방지)
-  if(!dateStr){
-    const dmReply = reply.match(/(\d{1,2})월\s*(\d{1,2})일/g);
-    if(dmReply){
-      for(const d of dmReply){
-        const m=d.match(/(\d{1,2})월\s*(\d{1,2})일/);
-        const now=new Date();
-        const candidate=new Date(now.getFullYear(),parseInt(m[1])-1,parseInt(m[2])).toISOString().split('T')[0];
-        if(candidate!==todayStr()){dateStr=candidate;break;} // 오늘 날짜 제외
-      }
-      // 오늘 날짜 외 없으면 — 루틴 관련 응답인지 확인 후 저장 스킵
-      if(!dateStr) return false;
+    for(const line of reply.split('\n')){
+      const d=extractDateStr(line);
+      if(d&&d!==today){dateStr=d;break;}
     }
   }
 
   if(!dateStr) return false;
 
-  // 부위 감지 — 사용자 메시지 우선
+  // 부위 감지
   const mm=(userText+' '+reply).match(/가슴|등|하체|어깨|팔|전신|스트레칭/);
   if(mm){
     if(!monthPlan[dateStr])monthPlan[dateStr]={muscle:'',routines:[],done:false,totalTime:null};
