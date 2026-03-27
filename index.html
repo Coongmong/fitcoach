@@ -358,33 +358,76 @@ function extractJson(text){
 }
 
 async function parseAndSaveRoutineFromChat(text,dateStr){
-  const lines=text.split('\n');const items=[];
+  const lines=text.split('\n');
+  const items=[];
   for(const line of lines){
-    const m1=line.match(/^[\d.\-*\s]*([가-힣a-zA-Z\s]+?)\s*[|]\s*(\d+)\s*세트/);
-    const m2=line.match(/^[\d.\-*\s]*([가-힣a-zA-Z\s]+?)\s+(\d+)\s*세트/);
+    const cleaned=line.replace(/^\s*[\d]+[.)]\s*/,'').replace(/^\s*[-*•]\s*/,'').trim();
+    if(!cleaned)continue;
+    // 패턴 1: "운동명 | N세트"
+    const m1=cleaned.match(/^([^|]+?)\s*\|\s*(\d+)\s*세트/);
+    // 패턴 2: "운동명 N세트"
+    const m2=cleaned.match(/^([가-힣a-zA-Z()\s]+?)\s+(\d+)\s*세트/);
     const m=m1||m2;
-    if(m){const name=m[1].trim();const sets=parseInt(m[2]);if(name&&sets)items.push({name,sets,doneTime:null});}
+    if(m){
+      const name=m[1].trim().replace(/\s+/g,' ');
+      const sets=parseInt(m[2]);
+      // 워밍업/마무리/섹션 헤더 제외
+      if(name&&sets&&!name.includes('[')&&!name.includes('워밍업')&&!name.includes('마무리')&&name.length>=2){
+        items.push({name,sets,doneTime:null});
+      }
+    }
   }
   if(items.length>0){
     if(!monthPlan[dateStr])monthPlan[dateStr]={muscle:'',routines:[],done:false,totalTime:null};
     monthPlan[dateStr].routines=items;
-    await saveMonthPlan();return true;
+    await saveMonthPlan();
+    // 운동 탭이 열려있으면 UI 갱신
+    const wTab=document.getElementById('workout-tab');
+    if(wTab&&wTab.style.display!=='none'){
+      // 패널만 갱신 (날짜 클릭된 상태면)
+      const panel=document.getElementById('day-detail');
+      if(panel&&activeDayKey===dateStr) renderDayPanel(dateStr);
+      // 달력 행 업데이트
+      const row=document.getElementById('day-row-'+dateStr);
+      if(row){
+        const plan=monthPlan[dateStr];
+        const lb=row.querySelector('.muscle-label');
+        if(lb&&plan.muscle){lb.textContent=plan.muscle;}
+      }
+    }
+    return true;
   }
   return false;
 }
 
 async function detectAndSaveRoutineFromChat(reply,userText){
+  // 날짜 감지 (N월 M일)
   const dm=userText.match(/(\d{1,2})월\s*(\d{1,2})일/);
-  if(!dm)return;
+  // 날짜 없으면 오늘 날짜로
   const now=new Date();
-  const targetDate=new Date(now.getFullYear(),parseInt(dm[1])-1,parseInt(dm[2]));
-  const dateStr=targetDate.toISOString().split('T')[0];
+  let dateStr;
+  if(dm){
+    const targetDate=new Date(now.getFullYear(),parseInt(dm[1])-1,parseInt(dm[2]));
+    dateStr=targetDate.toISOString().split('T')[0];
+  } else {
+    // "오늘", "이번 주" 등 → 오늘 날짜
+    if(userText.includes('오늘')||userText.includes('루틴')||userText.includes('짜줘')) dateStr=todayStr();
+    else return;
+  }
+
+  // 부위 감지
   const mm=userText.match(/가슴|등|하체|어깨|팔|전신|스트레칭/);
   if(mm){
     if(!monthPlan[dateStr])monthPlan[dateStr]={muscle:'',routines:[],done:false,totalTime:null};
-    monthPlan[dateStr].muscle=mm[0];
+    if(!monthPlan[dateStr].muscle) monthPlan[dateStr].muscle=mm[0];
   }
-  await parseAndSaveRoutineFromChat(reply,dateStr);
+
+  const saved=await parseAndSaveRoutineFromChat(reply,dateStr);
+  if(saved){
+    // 저장 성공 시 운동 탭 전체 갱신
+    const wTab=document.getElementById('workout-tab');
+    if(wTab&&wTab.style.display!=='none') await renderWorkoutTab();
+  }
 }
 
 // ── 시스템 프롬프트 ───────────────────────────────────────────
