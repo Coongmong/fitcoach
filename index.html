@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <title>핏코치 — AI 운동·영양 코치</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -17,8 +17,6 @@ button{font-family:'DM Sans','Noto Sans KR',sans-serif;cursor:pointer}
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 @keyframes spin{to{transform:rotate(360deg)}}
 .fade-in{animation:fadeIn .25s ease forwards}
-
-/* 인증 화면 */
 .auth-screen{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:100dvh;padding:24px}
 .auth-screen.active{display:flex}
 .auth-logo{width:52px;height:52px;background:var(--gr);border-radius:16px;display:flex;align-items:center;justify-content:center;margin-bottom:18px}
@@ -38,9 +36,7 @@ button{font-family:'DM Sans','Noto Sans KR',sans-serif;cursor:pointer}
 .auth-hint{font-size:11px;color:var(--mu);line-height:1.5}
 .auth-hint a{color:var(--bl);text-decoration:none}
 .auth-div{height:1px;background:var(--br)}
-.spin{width:16px;height:16px;border:2px solid rgba(0,0,0,.2);border-top-color:#0c0e14;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px}
-
-/* 앱 */
+.sp{width:16px;height:16px;border:2px solid rgba(0,0,0,.2);border-top-color:#0c0e14;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px}
 #app{display:none;flex-direction:column;height:100dvh;max-width:480px;margin:0 auto;width:100%}
 .header{height:52px;padding:0 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--br);flex-shrink:0;background:var(--bg)}
 .logo-mark{width:30px;height:30px;background:var(--gr);border-radius:9px;display:flex;align-items:center;justify-content:center}
@@ -51,8 +47,6 @@ button{font-family:'DM Sans','Noto Sans KR',sans-serif;cursor:pointer}
 .tab-btn.active{background:var(--s3);color:var(--tx)}
 .icon-btn{width:28px;height:28px;border-radius:7px;border:1px solid var(--br);background:transparent;color:var(--mu);display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0}
 .icon-btn:hover{border-color:var(--b2);color:var(--tx)}
-
-/* 채팅 */
 #chat-tab{flex:1;display:flex;flex-direction:column;overflow:hidden}
 .msg-list{flex:1;overflow-y:auto;padding:14px 14px 6px;display:flex;flex-direction:column;gap:10px}
 .msg-row{display:flex;gap:8px;align-items:flex-start;animation:fadeIn .2s ease}
@@ -80,8 +74,6 @@ button{font-family:'DM Sans','Noto Sans KR',sans-serif;cursor:pointer}
 .msg-input{flex:1;background:transparent;border:none;outline:none;color:var(--tx);font-size:13.5px;resize:none;line-height:1.5;padding:6px 0;font-family:inherit;max-height:100px;min-height:34px}
 .send-btn{width:34px;height:34px;border-radius:9px;border:none;background:var(--s3);color:var(--mu);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
 .send-btn.active{background:var(--gr);color:#0c0e14}
-
-/* 공통 */
 .scroll-tab{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:12px}
 .card{background:var(--sf);border:1px solid var(--br);border-radius:16px;padding:14px}
 .sec-lbl{font-size:10px;font-weight:500;color:var(--mu);letter-spacing:.07em;text-transform:uppercase;margin-bottom:12px}
@@ -100,10 +92,6 @@ button{font-family:'DM Sans','Noto Sans KR',sans-serif;cursor:pointer}
 .ring-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px}
 .pr-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--br)}
 .pr-row:last-child{border:none}
-.sess-card{padding:10px;background:var(--bg);border-radius:10px;border:1px solid var(--br);margin-bottom:8px}
-.sess-card:last-child{margin-bottom:0}
-.tag-pill{font-size:11px;padding:3px 8px;border-radius:6px;background:var(--s2);border:1px solid var(--br)}
-.tag-pill.pr{color:var(--gr);border-color:var(--gd)}
 .nut-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .nut-card{background:var(--sf);border:1px solid var(--br);border-radius:14px;padding:14px 10px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px}
 .food-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--br)}
@@ -117,23 +105,14 @@ button{font-family:'DM Sans','Noto Sans KR',sans-serif;cursor:pointer}
 </head>
 <body>
 
-<!-- 1단계: API 키 (최초 1회) -->
-
-
-<!-- 2단계: 로그인 -->
+<!-- 로그인 -->
 <div id="screen-login" class="auth-screen">
   <div class="auth-logo"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0c0e14" stroke-width="2.5" stroke-linecap="round"><path d="M6 4v16M18 4v16M3 8h18M3 16h18"/></svg></div>
   <h1 class="auth-title">핏코치</h1>
   <p class="auth-sub">로그인하고 나의 기록을 확인해요</p>
   <div class="auth-box">
-    <div class="auth-field">
-      <label class="auth-label">이메일</label>
-      <input class="auth-input" id="login-email" type="email" placeholder="example@company.com" autocomplete="email">
-    </div>
-    <div class="auth-field">
-      <label class="auth-label">비밀번호</label>
-      <input class="auth-input" id="login-pw" type="password" placeholder="비밀번호 입력" autocomplete="current-password">
-    </div>
+    <div class="auth-field"><label class="auth-label">이메일</label><input class="auth-input" id="login-email" type="email" placeholder="example@company.com" autocomplete="email"></div>
+    <div class="auth-field"><label class="auth-label">비밀번호</label><input class="auth-input" id="login-pw" type="password" placeholder="비밀번호 입력" autocomplete="current-password"></div>
     <p class="auth-err" id="login-err"></p>
     <button class="auth-btn" id="login-btn">로그인</button>
     <div class="auth-div"></div>
@@ -141,24 +120,15 @@ button{font-family:'DM Sans','Noto Sans KR',sans-serif;cursor:pointer}
   </div>
 </div>
 
-<!-- 3단계: 회원가입 -->
+<!-- 회원가입 -->
 <div id="screen-signup" class="auth-screen">
   <div class="auth-logo"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0c0e14" stroke-width="2.5" stroke-linecap="round"><path d="M6 4v16M18 4v16M3 8h18M3 16h18"/></svg></div>
   <h1 class="auth-title">회원가입</h1>
   <p class="auth-sub">계정을 만들어 나만의 기록을 시작해요</p>
   <div class="auth-box">
-    <div class="auth-field">
-      <label class="auth-label">이름 (닉네임)</label>
-      <input class="auth-input" id="signup-name" type="text" placeholder="홍길동" autocomplete="name">
-    </div>
-    <div class="auth-field">
-      <label class="auth-label">이메일</label>
-      <input class="auth-input" id="signup-email" type="email" placeholder="example@company.com" autocomplete="email">
-    </div>
-    <div class="auth-field">
-      <label class="auth-label">비밀번호 (6자 이상)</label>
-      <input class="auth-input" id="signup-pw" type="password" placeholder="비밀번호 입력" autocomplete="new-password">
-    </div>
+    <div class="auth-field"><label class="auth-label">이름 (닉네임)</label><input class="auth-input" id="signup-name" type="text" placeholder="홍길동" autocomplete="name"></div>
+    <div class="auth-field"><label class="auth-label">이메일</label><input class="auth-input" id="signup-email" type="email" placeholder="example@company.com" autocomplete="email"></div>
+    <div class="auth-field"><label class="auth-label">비밀번호 (6자 이상)</label><input class="auth-input" id="signup-pw" type="password" placeholder="비밀번호 입력" autocomplete="new-password"></div>
     <p class="auth-err" id="signup-err"></p>
     <button class="auth-btn" id="signup-btn">가입하기</button>
     <div class="auth-div"></div>
@@ -176,19 +146,11 @@ button{font-family:'DM Sans','Noto Sans KR',sans-serif;cursor:pointer}
     </div>
     <div style="display:flex;align-items:center;gap:6px">
       <div class="tab-bar">
-        <button class="tab-btn active" data-tab="chat" onclick="switchTab('chat')">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>채팅
-        </button>
-        <button class="tab-btn" data-tab="nutrition" onclick="switchTab('nutrition')">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/></svg>영양
-        </button>
-        <button class="tab-btn" data-tab="workout" onclick="switchTab('workout')">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 4v16M18 4v16M3 8h18M3 16h18"/></svg>운동
-        </button>
+        <button class="tab-btn active" data-tab="chat" onclick="switchTab('chat')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>채팅</button>
+        <button class="tab-btn" data-tab="nutrition" onclick="switchTab('nutrition')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/></svg>영양</button>
+        <button class="tab-btn" data-tab="workout" onclick="switchTab('workout')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 4v16M18 4v16M3 8h18M3 16h18"/></svg>운동</button>
       </div>
-      <button class="icon-btn" onclick="doSignOut()" title="로그아웃">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-      </button>
+      <button class="icon-btn" onclick="doSignOut()" title="로그아웃"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
     </div>
   </div>
   <div id="chat-tab">
@@ -205,13 +167,9 @@ button{font-family:'DM Sans','Noto Sans KR',sans-serif;cursor:pointer}
     </div>
     <div class="input-area">
       <div class="input-wrap">
-        <button class="cam-btn" onclick="document.getElementById('file-input').click()">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-        </button>
+        <button class="cam-btn" onclick="document.getElementById('file-input').click()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></button>
         <textarea class="msg-input" id="msg-input" rows="1" placeholder="운동 기록하거나 질문해봐" onkeydown="handleKey(event)" oninput="autoResize(this);updateSendBtn()"></textarea>
-        <button class="send-btn" id="send-btn" onclick="send()">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-        </button>
+        <button class="send-btn" id="send-btn" onclick="send()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
       </div>
     </div>
     <input type="file" id="file-input" accept="image/*" capture="environment" style="display:none" onchange="handleFile(event)">
@@ -225,36 +183,30 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/fireba
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut as fbSignOut, updateProfile } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, doc, setDoc, getDoc, collection, query, where, getDocs, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-// Firebase 초기화
-const fbApp = initializeApp({
-  apiKey:"AIzaSyB6RH_zNuyLlm3Hh1tBSBZsYHxiLYUQQvo",
-  authDomain:"fitcoach-96d39.firebaseapp.com",
-  projectId:"fitcoach-96d39",
-  storageBucket:"fitcoach-96d39.firebasestorage.app",
-  messagingSenderId:"468530084824",
-  appId:"1:468530084824:web:1c2eb2dcb1814a75ac10ad"
-});
+const fbApp = initializeApp({apiKey:"AIzaSyB6RH_zNuyLlm3Hh1tBSBZsYHxiLYUQQvo",authDomain:"fitcoach-96d39.firebaseapp.com",projectId:"fitcoach-96d39",storageBucket:"fitcoach-96d39.firebasestorage.app",messagingSenderId:"468530084824",appId:"1:468530084824:web:1c2eb2dcb1814a75ac10ad"});
 const auth = getAuth(fbApp);
 const fdb  = getFirestore(fbApp);
 
-// 색상
 const C={bg:'#0c0e14',sf:'#141720',s2:'#1c2030',s3:'#232740',br:'#252836',b2:'#2e3350',tx:'#e8eaf2',mu:'#5a6080',mu2:'#8892b0',gr:'#22c55e',gd:'#166534',gb:'#0d2018',or:'#f97316',ob:'#1c1008',bl:'#60a5fa',bb:'#0d1a30',pu:'#a78bfa',pb:'#150f2a',re:'#f87171',rb:'#1c0d0d',ye:'#fbbf24'};
-
-// 유틸
 const todayStr=()=>new Date().toISOString().split('T')[0];
 const getWeek=()=>Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()-(6-i));return d.toISOString().split('T')[0];});
 const DAY=['일','월','화','수','목','금','토'];
+const DAY_FULL=['일요일','월요일','화요일','수요일','목요일','금요일','토요일'];
 const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 function fileToBase64(f){return new Promise((r,j)=>{const rd=new FileReader();rd.onload=()=>r(rd.result.split(',')[1]);rd.onerror=j;rd.readAsDataURL(f);});}
+function fmtSec(sec){const m=Math.floor(sec/60),s=sec%60;return m+':'+String(s).padStart(2,'0');}
 
-// 상태
+// ── 상태 ──────────────────────────────────────────────────────
 let currentUser=null;
 let busy=false,scanning=false,pendingImg=null;
 let msgs=[],sessions=[],foodToday=[],foodAll=[],prs={},weekVol={},userProfile=null;
+let monthPlan={};
+let activeDayKey=null,activeExIdx=null,setTimer=null,setStart=null,doneSet=0;
 const GOAL_KCAL=()=>userProfile?.goal==='fat_loss'?1800:userProfile?.goal==='strength'?2800:2200;
 const GOAL_PROT=()=>userProfile?.goal==='hypertrophy'?160:130;
+const MUSCLE_LABELS=['가슴','등','하체','어깨','팔','전신','스트레칭','휴식'];
 
-// 화면 전환
+// ── 화면 전환 ─────────────────────────────────────────────────
 function showScreen(id){
   document.querySelectorAll('.auth-screen').forEach(el=>el.classList.remove('active'));
   document.getElementById('app').style.display='none';
@@ -263,70 +215,68 @@ function showScreen(id){
 }
 window.showScreen=showScreen;
 
-// 로그인/회원가입 바인딩
+// ── 인증 바인딩 ───────────────────────────────────────────────
 function bindAuth(){
-  const loginBtn=document.getElementById('login-btn');
-  loginBtn.onclick=async()=>{
+  const lb=document.getElementById('login-btn');
+  lb.onclick=async()=>{
     const email=document.getElementById('login-email').value.trim();
     const pw=document.getElementById('login-pw').value;
-    const errEl=document.getElementById('login-err');
-    errEl.style.display='none';
-    if(!email||!pw){errEl.textContent='이메일과 비밀번호를 입력해줘';errEl.style.display='block';return;}
-    loginBtn.disabled=true;loginBtn.innerHTML='<span class="spin"></span>로그인 중...';
+    const err=document.getElementById('login-err');
+    err.style.display='none';
+    if(!email||!pw){err.textContent='이메일과 비밀번호를 입력해줘';err.style.display='block';return;}
+    lb.disabled=true;lb.innerHTML='<span class="sp"></span>로그인 중...';
     try{await signInWithEmailAndPassword(auth,email,pw);}
-    catch(e){errEl.textContent=fbErr(e.code);errEl.style.display='block';loginBtn.disabled=false;loginBtn.textContent='로그인';}
+    catch(e){err.textContent=fbErr(e.code);err.style.display='block';lb.disabled=false;lb.textContent='로그인';}
   };
-  document.getElementById('login-pw').addEventListener('keydown',e=>{if(e.key==='Enter')loginBtn.click();});
+  document.getElementById('login-pw').addEventListener('keydown',e=>{if(e.key==='Enter')lb.click();});
 
-  const signupBtn=document.getElementById('signup-btn');
-  signupBtn.onclick=async()=>{
+  const sb=document.getElementById('signup-btn');
+  sb.onclick=async()=>{
     const name=document.getElementById('signup-name').value.trim();
     const email=document.getElementById('signup-email').value.trim();
     const pw=document.getElementById('signup-pw').value;
-    const errEl=document.getElementById('signup-err');
-    errEl.style.display='none';
-    if(!name||!email||!pw){errEl.textContent='모든 항목을 입력해줘';errEl.style.display='block';return;}
-    if(pw.length<6){errEl.textContent='비밀번호는 6자 이상이어야 해';errEl.style.display='block';return;}
-    signupBtn.disabled=true;signupBtn.innerHTML='<span class="spin"></span>가입 중...';
+    const err=document.getElementById('signup-err');
+    err.style.display='none';
+    if(!name||!email||!pw){err.textContent='모든 항목을 입력해줘';err.style.display='block';return;}
+    if(pw.length<6){err.textContent='비밀번호는 6자 이상이어야 해';err.style.display='block';return;}
+    sb.disabled=true;sb.innerHTML='<span class="sp"></span>가입 중...';
     try{
       const cred=await createUserWithEmailAndPassword(auth,email,pw);
       await updateProfile(cred.user,{displayName:name});
-      await setDoc(doc(fdb,'users',cred.user.uid),{name,email,createdAt:new Date().toISOString(),goal:null,level:null});
-    }catch(e){errEl.textContent=fbErr(e.code);errEl.style.display='block';signupBtn.disabled=false;signupBtn.textContent='가입하기';}
+      await setDoc(doc(fdb,'users',cred.user.uid),{name,email,createdAt:new Date().toISOString(),goal:null,level:null,workoutTime:null,workoutPlace:null});
+    }catch(e){err.textContent=fbErr(e.code);err.style.display='block';sb.disabled=false;sb.textContent='가입하기';}
   };
 }
 
 function fbErr(code){
   const m={'auth/user-not-found':'등록된 이메일이 없어. 회원가입을 먼저 해줘.','auth/wrong-password':'비밀번호가 틀렸어.','auth/invalid-credential':'이메일 또는 비밀번호가 틀렸어.','auth/email-already-in-use':'이미 사용 중인 이메일이야.','auth/weak-password':'비밀번호를 더 강하게 설정해줘.','auth/invalid-email':'올바른 이메일 형식이 아니야.','auth/too-many-requests':'잠시 후 다시 시도해줘.'};
-  return m[code]||`오류 (${code})`;
+  return m[code]||'오류 ('+code+')';
 }
 
-// 로그아웃
 async function doSignOut(){
   if(!confirm('로그아웃할까?'))return;
   await fbSignOut(auth);
-  msgs=[];sessions=[];foodToday=[];foodAll=[];prs={};weekVol={};userProfile=null;
+  msgs=[];sessions=[];foodToday=[];foodAll=[];prs={};weekVol={};userProfile=null;monthPlan={};
   document.getElementById('msg-list').innerHTML='';
   showScreen('screen-login');
 }
 window.doSignOut=doSignOut;
 
-// 인증 상태 감지
 onAuthStateChanged(auth,async user=>{
   if(user){
     currentUser=user;
     document.getElementById('user-badge').textContent=user.displayName||user.email.split('@')[0];
     showScreen('app');
     await loadAll();
-    if(msgs.length===0) addMsg('assistant',`안녕 ${user.displayName||''}! 나는 핏코치야 💪\n\n운동 기록, 루틴 추천, 음식 사진 칼로리 분석까지 다 돼!\n카메라 버튼(📷)을 눌러봐.`);
+    if(msgs.length===0) addMsg('assistant','안녕 '+(user.displayName||'')+'! 나는 핏코치야 💪\n\n운동 기록, 루틴 추천, 음식 사진 칼로리 분석까지 다 돼!\n카메라 버튼(📷)을 눌러봐.');
   } else {
     currentUser=null;
     showScreen('screen-login');
   }
 });
 
-// Firestore CRUD
-const uCol=(c)=>collection(fdb,'users',currentUser.uid,c);
+// ── Firestore ─────────────────────────────────────────────────
+const uCol=c=>collection(fdb,'users',currentUser.uid,c);
 const uDoc=(c,id)=>doc(fdb,'users',currentUser.uid,c,id);
 
 async function loadAll(){
@@ -335,66 +285,44 @@ async function loadAll(){
   if(pd.exists())userProfile=pd.data();
   const cut=new Date();cut.setDate(cut.getDate()-30);
   const cutStr=cut.toISOString().split('T')[0];
-  // 세션
-  try{
-    const sq=query(uCol('sessions'),where('date','>=',cutStr),orderBy('date','desc'));
-    const ss=await getDocs(sq);
-    sessions=ss.docs.map(d=>d.data());
-  }catch{sessions=[];}
-  const wv={};getWeek().forEach(d=>{wv[d]=0;});
-  sessions.forEach(s=>{if(wv[s.date]!==undefined)wv[s.date]+=s.totalVolume||0;});
-  weekVol=wv;
-  // PR
-  try{
-    const ps=await getDocs(uCol('prs'));
-    prs={};ps.docs.forEach(d=>{prs[d.id]=d.data();});
-  }catch{prs={};}
-  // 음식
-  try{
-    const fq=query(uCol('foods'),where('date','>=',cutStr),orderBy('date','desc'),orderBy('at','desc'));
-    const fs=await getDocs(fq);
-    foodAll=fs.docs.map(d=>d.data());
-  }catch{foodAll=[];}
+  try{const sq=query(uCol('sessions'),where('date','>=',cutStr),orderBy('date','desc'));const ss=await getDocs(sq);sessions=ss.docs.map(d=>d.data());}catch{sessions=[];}
+  const wv={};getWeek().forEach(d=>{wv[d]=0;});sessions.forEach(s=>{if(wv[s.date]!==undefined)wv[s.date]+=s.totalVolume||0;});weekVol=wv;
+  try{const ps=await getDocs(uCol('prs'));prs={};ps.docs.forEach(d=>{prs[d.id]=d.data();});}catch{prs={};}
+  try{const fq=query(uCol('foods'),where('date','>=',cutStr),orderBy('date','desc'),orderBy('at','desc'));const fs=await getDocs(fq);foodAll=fs.docs.map(d=>d.data());}catch{foodAll=[];}
   foodToday=foodAll.filter(f=>f.date===todayStr());
+  await loadMonthPlan();
 }
 
 async function saveSession(exs){
   if(!currentUser)return;
-  const id=`s${Date.now()}`;
+  const id='s'+Date.now();
   const sess={sessionId:id,date:todayStr(),exercises:exs,totalVolume:calcVol(exs)};
   for(const ex of sess.exercises){
-    const ref=uDoc('prs',ex.name);
-    const cur=await getDoc(ref);
-    if(!cur.exists()||ex.weight>cur.data().weight){
-      await setDoc(ref,{name:ex.name,weight:ex.weight,reps:ex.reps,date:todayStr()});
-      ex.isPersonalRecord=true;
-    }
+    const ref=uDoc('prs',ex.name);const cur=await getDoc(ref);
+    if(!cur.exists()||ex.weight>cur.data().weight){await setDoc(ref,{name:ex.name,weight:ex.weight,reps:ex.reps,date:todayStr()});ex.isPersonalRecord=true;}
   }
   await setDoc(uDoc('sessions',id),sess);
 }
 
 async function saveFoodLog(fd,imgDataUrl){
   if(!currentUser)return;
-  const id=`f${Date.now()}`;
+  const id='f'+Date.now();
   await setDoc(uDoc('foods',id),{id,date:todayStr(),at:new Date().toISOString(),imgDataUrl:imgDataUrl||null,...fd});
 }
 
 async function detectAndSaveProfile(text){
   if(!currentUser||!userProfile)return;
   const cur={...userProfile};let upd=false;
-  // 운동 목표/레벨
   const gm={'근비대':'hypertrophy','근력':'strength','체중감량':'fat_loss','다이어트':'fat_loss'};
   const lm={'초보':'beginner','입문':'beginner','중급':'intermediate','고급':'advanced'};
   for(const[k,v]of Object.entries(gm))if(text.includes(k)&&!cur.goal){cur.goal=v;upd=true;}
   for(const[k,v]of Object.entries(lm))if(text.includes(k)&&!cur.level){cur.level=v;upd=true;}
-  // 운동 환경 — 처음 나왔을 때만 저장
   const timeM=text.match(/(\d+)\s*(분|시간)/);
   if(timeM&&!cur.workoutTime){cur.workoutTime=timeM[0];upd=true;}
   if(!cur.workoutPlace){
     if(text.includes('헬스장')){cur.workoutPlace='헬스장';upd=true;}
-    else if(text.includes('집')&&(text.includes('운동')||text.includes('홈트'))){cur.workoutPlace='집';upd=true;}
+    else if(text.includes('홈트')||(text.includes('집')&&text.includes('운동'))){cur.workoutPlace='집';upd=true;}
   }
-  // 사용자가 명시적으로 변경 요청한 경우 덮어쓰기
   const chgTime=text.match(/(\d+\s*(?:분|시간))\s*(?:으로|로)\s*변경/);
   if(chgTime){cur.workoutTime=chgTime[1];upd=true;}
   const chgPlace=text.match(/(헬스장|집)\s*(?:으로|로)\s*변경/);
@@ -402,37 +330,19 @@ async function detectAndSaveProfile(text){
   if(upd){await setDoc(doc(fdb,'users',currentUser.uid),cur,{merge:true});userProfile=cur;}
 }
 
-// 시스템 프롬프트
-function buildSysChat(){
-  const td=foodToday.reduce((a,f)=>({kcal:a.kcal+f.kcal,prot:a.prot+f.prot}),{kcal:0,prot:0});
-  const rec=sessions.slice(0,4).map(s=>`${s.date}: ${s.exercises.map(e=>`${e.name} ${e.weight}kg×${e.reps}×${e.sets}`).join(', ')}`).join('\n')||'없음';
-  // 오늘 운동 플랜
-  const todayPlan=monthPlan[todayStr()];
-  const todayMuscle=todayPlan?.muscle||null;
-  // 이번 달 플랜 요약 (부위 설정된 날짜만)
-  const planSummary=Object.entries(monthPlan).filter(([,p])=>p.muscle).slice(0,10)
-    .map(([d,p])=>{const dt=new Date(d+'T00:00:00');return `${dt.getMonth()+1}/${dt.getDate()}:${p.muscle}`;}).join(', ')||'없음';
-  // 운동 환경
-  const env=[
-    userProfile?.workoutTime?'가능시간:'+userProfile.workoutTime:null,
-    userProfile?.workoutPlace?'장소:'+userProfile.workoutPlace:null,
-    userProfile?.level?'레벨:'+userProfile.level:null,
-  ].filter(Boolean).join(' | ')||null;
+// ── 월간 플랜 ─────────────────────────────────────────────────
+async function loadMonthPlan(){
+  if(!currentUser)return;
+  const key=new Date().toISOString().slice(0,7);
+  try{const d=await getDoc(uDoc('plans',key));monthPlan=d.exists()?JSON.parse(d.data().data||'{}'):{};}catch{monthPlan={};}
+}
+async function saveMonthPlan(){
+  if(!currentUser)return;
+  const key=new Date().toISOString().slice(0,7);
+  await setDoc(uDoc('plans',key),{data:JSON.stringify(monthPlan)});
+}
 
-  return `당신은 "핏코치" — 운동·영양 전문 AI 코치. 사용자: ${currentUser?.displayName||''}. 반말로 친근하게 대화.
-
-[프로필] 목표:${userProfile?.goal||'미설정'}${env?' | '+env:''}
-[오늘 영양] ${td.kcal}kcal/${GOAL_KCAL()}kcal | 단백질 ${Math.round(td.prot)}g/${GOAL_PROT()}g
-[최근 운동] ${rec}
-[이번 달 플랜] ${planSummary}
-[오늘 운동 부위] ${todayMuscle||'미설정'}
-
-[행동 규칙]
-- kg×회×세트 패턴 → "✅ 기록됐어!" PR이면 "🎉 신기록!"
-- 루틴 요청 시: 오늘 부위가 설정돼 있으면 부위를 다시 묻지 말고 바로 루틴 제시
-- 운동 환경(시간/장소/레벨)이 프로필에 저장돼 있으면 다시 묻지 말 것. 없을 때만 1회 질문
-- 운동 질문 → 주동근·자세·주의사항 순
-// 파싱
+// ── 파싱 ─────────────────────────────────────────────────────
 function parseWorkout(text){
   const pat=/([가-힣a-zA-Z ]+?)\s+(\d+(?:\.\d+)?)\s*kg\s*[×x×]\s*(\d+)\s*회\s*[×x×]\s*(\d+)\s*세트/gi;
   const out=[];let m;while((m=pat.exec(text))!==null)out.push({name:m[1].trim(),weight:+m[2],reps:+m[3],sets:+m[4]});
@@ -440,50 +350,96 @@ function parseWorkout(text){
 }
 const calcVol=exs=>exs.reduce((s,e)=>s+e.weight*e.reps*e.sets,0);
 function extractJson(text){
-  // 방법 1: ```json ... ``` 블록
   try{const m=text.match(/```json\s*([\s\S]+?)```/);if(m)return JSON.parse(m[1].trim());}catch{}
-  // 방법 2: ``` ... ``` 일반 블록
   try{const m=text.match(/```\s*(\{[\s\S]+?\})\s*```/);if(m)return JSON.parse(m[1].trim());}catch{}
-  // 방법 3: 텍스트 내 { ... } 패턴 (kcal 포함된 것만)
   try{const m=text.match(/\{[^{}]*"kcal"[^{}]*\}/);if(m)return JSON.parse(m[0]);}catch{}
-  // 방법 4: 마지막 줄에 있는 JSON
-  try{const lines=text.trim().split('\n');for(let i=lines.length-1;i>=0;i--){const l=lines[i].trim();if(l.startsWith('{')&&l.endsWith('}')){return JSON.parse(l);}}}catch{}
+  try{const lines=text.trim().split('\n');for(let i=lines.length-1;i>=0;i--){const l=lines[i].trim();if(l.startsWith('{')&&l.endsWith('}'))return JSON.parse(l);}}catch{}
   return null;
+}
+
+async function parseAndSaveRoutineFromChat(text,dateStr){
+  const lines=text.split('\n');const items=[];
+  for(const line of lines){
+    const m1=line.match(/^[\d.\-*\s]*([가-힣a-zA-Z\s]+?)\s*[|]\s*(\d+)\s*세트/);
+    const m2=line.match(/^[\d.\-*\s]*([가-힣a-zA-Z\s]+?)\s+(\d+)\s*세트/);
+    const m=m1||m2;
+    if(m){const name=m[1].trim();const sets=parseInt(m[2]);if(name&&sets)items.push({name,sets,doneTime:null});}
+  }
+  if(items.length>0){
+    if(!monthPlan[dateStr])monthPlan[dateStr]={muscle:'',routines:[],done:false,totalTime:null};
+    monthPlan[dateStr].routines=items;
+    await saveMonthPlan();return true;
+  }
+  return false;
+}
+
+async function detectAndSaveRoutineFromChat(reply,userText){
+  const dm=userText.match(/(\d{1,2})월\s*(\d{1,2})일/);
+  if(!dm)return;
+  const now=new Date();
+  const targetDate=new Date(now.getFullYear(),parseInt(dm[1])-1,parseInt(dm[2]));
+  const dateStr=targetDate.toISOString().split('T')[0];
+  const mm=userText.match(/가슴|등|하체|어깨|팔|전신|스트레칭/);
+  if(mm){
+    if(!monthPlan[dateStr])monthPlan[dateStr]={muscle:'',routines:[],done:false,totalTime:null};
+    monthPlan[dateStr].muscle=mm[0];
+  }
+  await parseAndSaveRoutineFromChat(reply,dateStr);
+}
+
+// ── 시스템 프롬프트 ───────────────────────────────────────────
+function buildSysChat(){
+  const td=foodToday.reduce((a,f)=>({kcal:a.kcal+f.kcal,prot:a.prot+f.prot}),{kcal:0,prot:0});
+  const rec=sessions.slice(0,4).map(s=>s.date+': '+s.exercises.map(e=>e.name+' '+e.weight+'kg×'+e.reps+'×'+e.sets).join(', ')).join('\n')||'없음';
+  const todayMuscle=(monthPlan[todayStr()]?.muscle)||null;
+  const planSummary=Object.entries(monthPlan).filter(([,p])=>p.muscle).slice(0,10)
+    .map(([d,p])=>{const dt=new Date(d+'T00:00:00');return (dt.getMonth()+1)+'/'+(dt.getDate())+':'+p.muscle;}).join(', ')||'없음';
+  const env=[
+    userProfile?.workoutTime?'가능시간:'+userProfile.workoutTime:null,
+    userProfile?.workoutPlace?'장소:'+userProfile.workoutPlace:null,
+    userProfile?.level?'레벨:'+userProfile.level:null,
+  ].filter(Boolean).join(' | ')||null;
+  return '당신은 "핏코치" — 운동·영양 전문 AI 코치. 사용자: '+(currentUser?.displayName||'')+'. 반말로 친근하게 대화.\n\n'
+    +'[프로필] 목표:'+(userProfile?.goal||'미설정')+(env?' | '+env:'')+'\n'
+    +'[오늘 영양] '+td.kcal+'kcal/'+GOAL_KCAL()+'kcal | 단백질 '+Math.round(td.prot)+'g/'+GOAL_PROT()+'g\n'
+    +'[최근 운동] '+rec+'\n'
+    +'[이번 달 플랜] '+planSummary+'\n'
+    +'[오늘 운동 부위] '+(todayMuscle||'미설정')+'\n\n'
+    +'[행동 규칙]\n'
+    +'- kg×회×세트 패턴 → "✅ 기록됐어!" PR이면 "🎉 신기록!"\n'
+    +'- 루틴 요청 시: 오늘 부위가 설정돼 있으면 부위를 다시 묻지 말고 바로 루틴 제시\n'
+    +'- 운동 환경(시간/장소/레벨)이 프로필에 저장돼 있으면 다시 묻지 말 것. 없을 때만 1회 질문\n'
+    +'- 운동 질문 → 주동근·자세·주의사항 순\n'
+    +'- 루틴 출력 시 "운동명 | N세트" 형식으로 목록 제시';
 }
 
 function buildSysFood(){
   const td=foodToday.reduce((a,f)=>({kcal:a.kcal+f.kcal,prot:a.prot+f.prot}),{kcal:0,prot:0});
-  return `당신은 영양사 겸 AI 코치 "핏코치". 음식 사진 분석 전문. 반말로 친근하게 대화합니다.
-[오늘 섭취 현황] ${td.kcal}kcal/${GOAL_KCAL()}kcal | 단백질 ${Math.round(td.prot)}g/${GOAL_PROT()}g
-[이미 먹은 것] ${foodToday.map(f=>`${f.name}(${f.kcal}kcal)`).join(', ')||'없음'}
-
-[필수 응답 형식 — 반드시 이 순서로, JSON 블록 절대 생략 금지]
-1. 사진 속 음식 설명 (2~3줄)
-2. 오늘 목표 대비 현황 + 영양 조언 (2~3줄)
-3. 아래 형식의 JSON 블록을 응답 맨 마지막에 반드시 1회 출력할 것. 이 블록이 없으면 데이터가 저장되지 않습니다:
-
-\`\`\`json
-{"name":"음식명","portion":"약 XXXg 또는 1인분","kcal":숫자,"prot":숫자,"carb":숫자,"fat":숫자,"fiber":숫자}
-\`\`\`
-
-주의: JSON 블록은 응답의 마지막 줄에 위치해야 하며, 절대 중간에 넣거나 생략하지 말 것.`;
+  return '당신은 영양사 겸 AI 코치 "핏코치". 음식 사진 분석 전문. 반말로 친근하게 대화.\n'
+    +'[오늘 섭취 현황] '+td.kcal+'kcal/'+GOAL_KCAL()+'kcal | 단백질 '+Math.round(td.prot)+'g/'+GOAL_PROT()+'g\n'
+    +'[이미 먹은 것] '+(foodToday.map(f=>f.name+'('+f.kcal+'kcal)').join(', ')||'없음')+'\n\n'
+    +'[필수 응답 형식 — JSON 블록 절대 생략 금지]\n'
+    +'1. 음식 설명 (2~3줄)\n'
+    +'2. 오늘 현황 + 영양 조언 (2~3줄)\n'
+    +'3. 응답 맨 마지막에 반드시 아래 JSON 1회 출력:\n'
+    +'```json\n{"name":"음식명","portion":"약XXXg","kcal":숫자,"prot":숫자,"carb":숫자,"fat":숫자,"fiber":숫자}\n```';
 }
 
-// Claude API — Netlify 프록시 경유
+// ── API 호출 ─────────────────────────────────────────────────
 async function callAPI(messages,system){
   const norm=messages.map(m=>({role:m.role,content:Array.isArray(m.content)?m.content.filter(b=>b.type==='text').map(b=>b.text).join('\n')||(m.imgPrev?'(사진)':''):(m.content||'')})).filter(m=>m.content.trim());
   const res=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:1000,system,messages:norm})});
-  if(!res.ok){let d='';try{const e=await res.json();d=e?.error?.message||'';}catch{}throw new Error(`${res.status}${d?' — '+d:''}`);}
+  if(!res.ok){let d='';try{const e=await res.json();d=e?.error?.message||'';}catch{}throw new Error(res.status+(d?' — '+d:''));}
   return (await res.json()).content?.[0]?.text||'응답 오류';
 }
 async function callAPIImg(textMsgs,imageMsg,system){
   const messages=[...textMsgs.slice(-6).map(m=>({role:m.role,content:String(m.content||'')})),imageMsg];
   const res=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:2000,system,messages})});
-  if(!res.ok){let d='';try{const e=await res.json();d=e?.error?.message||'';}catch{}throw new Error(`${res.status}${d?' — '+d:''}`);}
+  if(!res.ok){let d='';try{const e=await res.json();d=e?.error?.message||'';}catch{}throw new Error(res.status+(d?' — '+d:''));}
   return (await res.json()).content?.[0]?.text||'응답 오류';
 }
 
-// 전송
+// ── 전송 ─────────────────────────────────────────────────────
 async function send(){
   const txt=document.getElementById('msg-input').value.trim();
   if((!txt&&!pendingImg)||busy)return;
@@ -492,22 +448,17 @@ async function send(){
   updateSendBtn();setBusy(true);
   if(pendingImg){
     scanning=true;
-    const caption = (txt||'이 음식 사진을 분석해줘') + '\n\n반드시 응답 마지막에 아래 형식의 JSON 블록을 포함해줘:\n```json\n{"name":"음식명","portion":"약XXXg","kcal":숫자,"prot":숫자,"carb":숫자,"fat":숫자,"fiber":숫자}\n```';
-    const displayCaption = txt||'이 음식 사진을 분석해줘';
-    addMsg('user', displayCaption, pendingImg.prev); showTyping(true);
+    const caption=(txt||'이 음식 사진을 분석해줘')+'\n\n반드시 응답 마지막에 아래 형식의 JSON 블록을 포함해줘:\n```json\n{"name":"음식명","portion":"약XXXg","kcal":숫자,"prot":숫자,"carb":숫자,"fat":숫자,"fiber":숫자}\n```';
+    const displayCaption=txt||'이 음식 사진을 분석해줘';
+    addMsg('user',displayCaption,pendingImg.prev);showTyping(true);
     const imgDataUrl='data:'+pendingImg.mime+';base64,'+pendingImg.b64;
     try{
       const reply=await callAPIImg(msgs.filter(m=>!m.imgPrev),{role:'user',content:[{type:'image',source:{type:'base64',media_type:pendingImg.mime,data:pendingImg.b64}},{type:'text',text:caption}]},buildSysFood());
       const fd=extractJson(reply);
-      if(fd){
-        await saveFoodLog(fd,imgDataUrl);
-        await loadAll();
-        renderNutritionTab();
-      } else {
-        console.warn('[핏코치] JSON 파싱 실패. 응답 원문:', reply);
-      }
+      if(fd){await saveFoodLog(fd,imgDataUrl);await loadAll();renderNutritionTab();}
+      else console.warn('[핏코치] JSON 파싱 실패. 응답 원문:',reply);
       hideTyping();addMsg('assistant',reply);
-    }catch(e){hideTyping();addMsg('assistant',`분석 오류: ${e.message}`);}
+    }catch(e){hideTyping();addMsg('assistant','분석 오류: '+e.message);}
     scanning=false;cancelImg();
   } else {
     const parsed=parseWorkout(txt);
@@ -516,18 +467,18 @@ async function send(){
       const reply=await callAPI(msgs.slice(-20),buildSysChat());
       if(parsed.length>0){await saveSession(parsed);await loadAll();}
       await detectAndSaveProfile(txt+reply);
-      await detectAndSaveRoutineFromChat(reply, txt);
+      await detectAndSaveRoutineFromChat(reply,txt);
       hideTyping();addMsg('assistant',reply);
-    }catch(e){hideTyping();addMsg('assistant',`오류: ${e.message}\n\n• API 키 확인\n• Anthropic 크레딧 확인`);}
+    }catch(e){hideTyping();addMsg('assistant','오류: '+e.message+'\n\n• API 키 확인\n• Anthropic 크레딧 확인');}
   }
   setBusy(false);
   setTimeout(()=>document.getElementById('msg-input').focus(),100);
 }
 window.send=send;
 
-// UI 헬퍼
+// ── UI 헬퍼 ──────────────────────────────────────────────────
 function setBusy(v){busy=v;updateSendBtn();}
-function cleanReply(t){t=t.replace(/```json[\s\S]*?```/gi,'').replace(/```[\s\S]*?```/g,'').replace(/\n{3,}/g,'\n\n');return t.trim();}
+function cleanReply(t){return t.replace(/```json[\s\S]*?```/gi,'').replace(/```[\s\S]*?```/g,'').replace(/\n{3,}/g,'\n\n').trim();}
 function addMsg(role,content,imgPrev){
   msgs.push({role,content,imgPrev});
   const list=document.getElementById('msg-list');
@@ -535,19 +486,18 @@ function addMsg(role,content,imgPrev){
   row.className='msg-row fade-in'+(role==='user'?' user':'');
   const disp=role==='assistant'?cleanReply(content):content;
   let html='';
-  if(role==='assistant') html+=`<div class="avatar"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0c0e14" stroke-width="2.5" stroke-linecap="round"><path d="M6 4v16M18 4v16M3 8h18M3 16h18"/></svg></div>`;
+  if(role==='assistant') html+='<div class="avatar"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0c0e14" stroke-width="2.5" stroke-linecap="round"><path d="M6 4v16M18 4v16M3 8h18M3 16h18"/></svg></div>';
   let bc='';
-  if(imgPrev) bc+=`<img src="${esc(imgPrev)}" alt="">`;
+  if(imgPrev) bc+='<img src="'+esc(imgPrev)+'" alt="">';
   bc+=esc(disp).replace(/\n/g,'<br>').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
-  html+=`<div class="bubble${role==='user'?' user':''}">${bc}</div>`;
+  html+='<div class="bubble'+(role==='user'?' user':'')+'">'+bc+'</div>';
   row.innerHTML=html;list.appendChild(row);list.scrollTop=list.scrollHeight;
 }
 let typingEl=null;
 function showTyping(isImg){
   const list=document.getElementById('msg-list');
-  typingEl=document.createElement('div');
-  typingEl.className='msg-row fade-in';
-  typingEl.innerHTML=`<div class="avatar"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0c0e14" stroke-width="2.5" stroke-linecap="round"><path d="M6 4v16M18 4v16M3 8h18M3 16h18"/></svg></div><div class="typing"><div class="dot-row"><div class="dot" style="animation-delay:0s;background:${isImg?C.or:C.gr}"></div><div class="dot" style="animation-delay:.15s;background:${isImg?C.or:C.gr}"></div><div class="dot" style="animation-delay:.3s;background:${isImg?C.or:C.gr}"></div>${isImg?'<span style="font-size:11px;color:'+C.or+';margin-left:4px">사진 분석 중...</span>':''}</div></div>`;
+  typingEl=document.createElement('div');typingEl.className='msg-row fade-in';
+  typingEl.innerHTML='<div class="avatar"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0c0e14" stroke-width="2.5" stroke-linecap="round"><path d="M6 4v16M18 4v16M3 8h18M3 16h18"/></svg></div><div class="typing"><div class="dot-row"><div class="dot" style="animation-delay:0s;background:'+(isImg?C.or:C.gr)+'"></div><div class="dot" style="animation-delay:.15s;background:'+(isImg?C.or:C.gr)+'"></div><div class="dot" style="animation-delay:.3s;background:'+(isImg?C.or:C.gr)+'"></div>'+(isImg?'<span style="font-size:11px;color:'+C.or+';margin-left:4px">사진 분석 중...</span>':'')+'</div></div>';
   list.appendChild(typingEl);list.scrollTop=list.scrollHeight;
 }
 function hideTyping(){if(typingEl){typingEl.remove();typingEl=null;}}
@@ -573,22 +523,27 @@ function cancelImg(){
 }
 window.cancelImg=cancelImg;window.setInput=setInput;window.handleKey=handleKey;window.handleFile=handleFile;window.autoResize=autoResize;window.updateSendBtn=updateSendBtn;
 
-// 탭
+// ── 탭 전환 ──────────────────────────────────────────────────
 function switchTab(id){
   ['chat','nutrition','workout'].forEach(t=>{
     document.getElementById(t+'-tab').style.display=t===id?(t==='chat'?'flex':'block'):'none';
-    document.querySelector(`[data-tab="${t}"]`).classList.toggle('active',t===id);
+    document.querySelector('[data-tab="'+t+'"]').classList.toggle('active',t===id);
   });
   if(id==='nutrition')renderNutritionTab();
   if(id==='workout')renderWorkoutTab();
 }
 window.switchTab=switchTab;
 
-// 차트 헬퍼
-function ringHTML(pct,color,size,sw){const r=(size-sw)/2,circ=2*Math.PI*r,dash=Math.min(pct/100,1)*circ;return `<svg width="${size}" height="${size}" style="transform:rotate(-90deg)"><circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${C.br}" stroke-width="${sw}"/><circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${color}" stroke-width="${sw}" stroke-dasharray="${dash} ${circ}" stroke-linecap="round"/></svg>`;}
-function barHTML(h,color,label,sub){return `<div class="bar-wrap"><div class="bar-sub">${sub||''}</div><div class="bar-bg"><div class="bar-fill" style="height:${Math.max(4,h)}px;background:${color}"></div></div><div class="bar-lbl" style="color:${color}">${label}</div></div>`;}
+// ── SVG 헬퍼 ─────────────────────────────────────────────────
+function ringHTML(pct,color,size,sw){
+  const r=(size-sw)/2,circ=2*Math.PI*r,dash=Math.min(pct/100,1)*circ;
+  return '<svg width="'+size+'" height="'+size+'" style="transform:rotate(-90deg)"><circle cx="'+(size/2)+'" cy="'+(size/2)+'" r="'+r+'" fill="none" stroke="'+C.br+'" stroke-width="'+sw+'"/><circle cx="'+(size/2)+'" cy="'+(size/2)+'" r="'+r+'" fill="none" stroke="'+color+'" stroke-width="'+sw+'" stroke-dasharray="'+dash+' '+circ+'" stroke-linecap="round"/></svg>';
+}
+function barHTML(h,color,label,sub){
+  return '<div class="bar-wrap"><div class="bar-sub">'+(sub||'')+'</div><div class="bar-bg"><div class="bar-fill" style="height:'+Math.max(4,h)+'px;background:'+color+'"></div></div><div class="bar-lbl" style="color:'+color+'">'+label+'</div></div>';
+}
 
-// 영양 탭
+// ── 영양 탭 ──────────────────────────────────────────────────
 function renderNutritionTab(){
   const el=document.getElementById('nutrition-tab');
   const tKcal=foodToday.reduce((s,f)=>s+f.kcal,0),tProt=foodToday.reduce((s,f)=>s+f.prot,0),tCarb=foodToday.reduce((s,f)=>s+f.carb,0),tFat=foodToday.reduce((s,f)=>s+f.fat,0);
@@ -597,381 +552,200 @@ function renderNutritionTab(){
   const w7={};getWeek().forEach(d=>{w7[d]=0;});foodAll.forEach(f=>{if(w7[f.date]!==undefined)w7[f.date]+=f.kcal;});
   const maxK=Math.max(...Object.values(w7),GOAL_KCAL(),1);
   const rc=kPct>110?C.re:kPct>90?C.ye:C.or;
-  el.innerHTML=`
-  <div class="card"><div class="sec-lbl">오늘 칼로리</div>
-    <div style="display:flex;align-items:center;gap:18px">
-      <div class="ring-wrap">${ringHTML(kPct,rc,80,8)}<div class="ring-center"><span style="font-size:17px;font-weight:700;line-height:1">${tKcal}</span><span style="font-size:9px;color:${C.mu}">kcal</span></div></div>
-      <div style="flex:1">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;margin-bottom:10px">
-          <div><div style="font-size:10px;color:${C.mu}">목표</div><div style="font-size:13px;font-weight:600;color:${C.mu2}">${GOAL_KCAL()} kcal</div></div>
-          <div><div style="font-size:10px;color:${C.mu}">잔여</div><div style="font-size:13px;font-weight:600;color:${GOAL_KCAL()-tKcal<0?C.re:C.gr}">${Math.max(0,GOAL_KCAL()-tKcal)} kcal</div></div>
-        </div>
-        <div style="height:5px;background:${C.br};border-radius:3px;overflow:hidden"><div style="height:100%;width:${Math.min(kPct,100)}%;background:${rc};border-radius:3px"></div></div>
-        <div style="font-size:10px;color:${C.mu};margin-top:4px;text-align:right">${kPct}%</div>
-      </div>
-    </div>
-  </div>
-  <div class="nut-grid">${[['단백질',Math.round(tProt),GOAL_PROT(),'g',C.bl,C.bb],['탄수화물',Math.round(tCarb),GOAL_CARB,'g',C.or,C.ob],['지방',Math.round(tFat),GOAL_FAT,'g',C.pu,C.pb]].map(([lbl,val,goal,unit,color])=>`<div class="nut-card"><div class="ring-wrap">${ringHTML(Math.round((val/goal)*100),color,52,5)}</div><div style="font-size:16px;font-weight:700">${val}<span style="font-size:9px;color:${C.mu};font-weight:400">${unit}</span></div><div style="font-size:9px;color:${C.mu}">${lbl}</div><div style="font-size:9px;color:${color}">/${goal}${unit}</div></div>`).join('')}</div>
-  <div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div class="sec-lbl" style="margin-bottom:0">오늘 먹은 음식</div><button onclick="switchTab('chat')" style="font-size:11px;color:${C.or};background:transparent;border:1px solid ${C.b2};border-radius:7px;padding:3px 10px;font-family:inherit">+ 사진 추가</button></div>
-    ${foodToday.length===0?`<div class="empty-state"><div style="font-size:32px;margin-bottom:8px">📷</div><div style="font-size:13px;color:${C.mu};margin-bottom:6px">아직 오늘 음식 기록이 없어</div><div style="font-size:11px;color:${C.mu2}">채팅 탭의 카메라 버튼으로 찍어봐</div></div>`
-    :foodToday.map(f=>`<div class="food-row">${f.imgDataUrl?`<img class="food-thumb" src="${esc(f.imgDataUrl)}" alt="">`:`<div class="food-ph"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${C.mu}" stroke-width="1.5" stroke-linecap="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/></svg></div>`}<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(f.name)}</div><div style="font-size:11px;color:${C.mu};margin-top:2px">${esc(f.portion||'')}</div><div style="display:flex;gap:4px;margin-top:4px"><span class="nut-tag" style="background:${C.bb};color:${C.bl}">단 ${Math.round(f.prot)}g</span><span class="nut-tag" style="background:${C.ob};color:${C.or}">탄 ${Math.round(f.carb)}g</span><span class="nut-tag" style="background:${C.pb};color:${C.pu}">지 ${Math.round(f.fat)}g</span></div></div><div style="text-align:right;flex-shrink:0"><div style="font-size:18px;font-weight:700;color:${C.or};font-family:'DM Mono',monospace;line-height:1">${f.kcal}</div><div style="font-size:9px;color:${C.mu}">kcal</div></div></div>`).join('')}
-    ${foodToday.length>0?`<div style="display:flex;justify-content:space-between;padding:10px 0 0;margin-top:4px"><span style="font-size:12px;color:${C.mu}">합계</span><span style="font-size:13px;font-weight:700;color:${C.or};font-family:'DM Mono',monospace">${tKcal} kcal</span></div>`:''}
-  </div>
-  <div class="card"><div class="sec-lbl">최근 7일 칼로리</div><div class="bar-row">${getWeek().map((date,i)=>{const k=w7[date]||0,isT=i===6,over=k>GOAL_KCAL();const h=k>0?Math.max(4,(k/maxK)*60):4;const color=isT?C.or:over?C.re:k>0?'#7c3f0e':C.br;return barHTML(h,color,DAY[new Date(date).getDay()],k>0?k:'');}).join('')}</div></div>`;
+  el.innerHTML=
+  '<div class="card"><div class="sec-lbl">오늘 칼로리</div>'
+  +'<div style="display:flex;align-items:center;gap:18px">'
+  +'<div class="ring-wrap">'+ringHTML(kPct,rc,80,8)+'<div class="ring-center"><span style="font-size:17px;font-weight:700;line-height:1">'+tKcal+'</span><span style="font-size:9px;color:'+C.mu+'">kcal</span></div></div>'
+  +'<div style="flex:1"><div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;margin-bottom:10px">'
+  +'<div><div style="font-size:10px;color:'+C.mu+'">목표</div><div style="font-size:13px;font-weight:600;color:'+C.mu2+'">'+GOAL_KCAL()+' kcal</div></div>'
+  +'<div><div style="font-size:10px;color:'+C.mu+'">잔여</div><div style="font-size:13px;font-weight:600;color:'+(GOAL_KCAL()-tKcal<0?C.re:C.gr)+'">'+Math.max(0,GOAL_KCAL()-tKcal)+' kcal</div></div></div>'
+  +'<div style="height:5px;background:'+C.br+';border-radius:3px;overflow:hidden"><div style="height:100%;width:'+Math.min(kPct,100)+'%;background:'+rc+';border-radius:3px"></div></div>'
+  +'<div style="font-size:10px;color:'+C.mu+';margin-top:4px;text-align:right">'+kPct+'%</div></div></div></div>'
+  +'<div class="nut-grid">'+[['단백질',Math.round(tProt),GOAL_PROT(),'g',C.bl,C.bb],['탄수화물',Math.round(tCarb),GOAL_CARB,'g',C.or,C.ob],['지방',Math.round(tFat),GOAL_FAT,'g',C.pu,C.pb]].map(([lbl,val,goal,unit,color])=>
+    '<div class="nut-card"><div class="ring-wrap">'+ringHTML(Math.round((val/goal)*100),color,52,5)+'</div>'
+    +'<div style="font-size:16px;font-weight:700">'+val+'<span style="font-size:9px;color:'+C.mu+';font-weight:400">'+unit+'</span></div>'
+    +'<div style="font-size:9px;color:'+C.mu+'">'+lbl+'</div><div style="font-size:9px;color:'+color+'">/'+goal+unit+'</div></div>').join('')+'</div>'
+  +'<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div class="sec-lbl" style="margin-bottom:0">오늘 먹은 음식</div><button onclick="switchTab(\'chat\')" style="font-size:11px;color:'+C.or+';background:transparent;border:1px solid '+C.b2+';border-radius:7px;padding:3px 10px;font-family:inherit">+ 사진 추가</button></div>'
+  +(foodToday.length===0?'<div class="empty-state"><div style="font-size:32px;margin-bottom:8px">📷</div><div style="font-size:13px;color:'+C.mu+';margin-bottom:6px">아직 오늘 음식 기록이 없어</div><div style="font-size:11px;color:'+C.mu2+'">채팅 탭의 카메라 버튼으로 찍어봐</div></div>'
+  :foodToday.map(f=>'<div class="food-row">'+(f.imgDataUrl?'<img class="food-thumb" src="'+esc(f.imgDataUrl)+'" alt="">':'<div class="food-ph"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="'+C.mu+'" stroke-width="1.5" stroke-linecap="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/></svg></div>')
+  +'<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(f.name)+'</div>'
+  +'<div style="font-size:11px;color:'+C.mu+';margin-top:2px">'+esc(f.portion||'')+'</div>'
+  +'<div style="display:flex;gap:4px;margin-top:4px"><span class="nut-tag" style="background:'+C.bb+';color:'+C.bl+'">단 '+Math.round(f.prot)+'g</span><span class="nut-tag" style="background:'+C.ob+';color:'+C.or+'">탄 '+Math.round(f.carb)+'g</span><span class="nut-tag" style="background:'+C.pb+';color:'+C.pu+'">지 '+Math.round(f.fat)+'g</span></div></div>'
+  +'<div style="text-align:right;flex-shrink:0"><div style="font-size:18px;font-weight:700;color:'+C.or+';font-family:\'DM Mono\',monospace;line-height:1">'+f.kcal+'</div><div style="font-size:9px;color:'+C.mu+'">kcal</div></div></div>').join('')
+  +(foodToday.length>0?'<div style="display:flex;justify-content:space-between;padding:10px 0 0;margin-top:4px"><span style="font-size:12px;color:'+C.mu+'">합계</span><span style="font-size:13px;font-weight:700;color:'+C.or+';font-family:\'DM Mono\',monospace">'+tKcal+' kcal</span></div>':''))
+  +'</div>'
+  +'<div class="card"><div class="sec-lbl">최근 7일 칼로리</div><div class="bar-row">'+getWeek().map((date,i)=>{const k=w7[date]||0,isT=i===6,over=k>GOAL_KCAL();const h=k>0?Math.max(4,(k/maxK)*60):4;const color=isT?C.or:over?C.re:k>0?'#7c3f0e':C.br;return barHTML(h,color,DAY[new Date(date).getDay()],k>0?k:'');}).join('')+'</div></div>';
 }
 
-// ── 운동 플랜 상태 ────────────────────────────────────────────
-let monthPlan = {};       // { 'YYYY-MM-DD': { muscle:'가슴', routines:[{name,sets,doneTime:null}], done:false, totalTime:null } }
-let activeDayKey = null;  // 현재 열린 날짜
-let activeExIdx  = null;  // 현재 타이머 중인 운동 인덱스
-let setTimer = null;      // setInterval 핸들
-let setStart  = null;     // 세트 시작 시각
-let doneSet   = 0;        // 수행한 세트 수
-
-const MUSCLE_LABELS = ['가슴','등','하체','어깨','팔','전신','스트레칭','휴식',''];
-const DAY_KO_FULL = ['일요일','월요일','화요일','수요일','목요일','금요일','토요일'];
-
-// 이번 달 날짜 배열
+// ── 운동 탭 ──────────────────────────────────────────────────
 function getMonthDates(){
-  const now = new Date();
-  const y = now.getFullYear(), m = now.getMonth();
-  const days = [];
-  const total = new Date(y, m+1, 0).getDate();
-  for(let d=1;d<=total;d++){
-    const dt = new Date(y,m,d);
-    days.push(dt.toISOString().split('T')[0]);
-  }
+  const now=new Date();const y=now.getFullYear(),m=now.getMonth();
+  const days=[];const total=new Date(y,m+1,0).getDate();
+  for(let d=1;d<=total;d++){const dt=new Date(y,m,d);days.push(dt.toISOString().split('T')[0]);}
   return days;
 }
-
-// 주 단위로 묶기
 function groupByWeek(dates){
-  const weeks = [];
-  let week = [];
-  dates.forEach(d=>{
-    week.push(d);
-    if(new Date(d).getDay()===0 || d===dates[dates.length-1]){ weeks.push([...week]); week=[]; }
-  });
-  if(week.length) weeks.push(week);
+  const weeks=[];let week=[];
+  dates.forEach(d=>{week.push(d);if(new Date(d).getDay()===0||d===dates[dates.length-1]){weeks.push([...week]);week=[];}});
+  if(week.length)weeks.push(week);
   return weeks;
 }
 
-// monthPlan Firestore 저장/로드
-async function saveMonthPlan(){
-  if(!currentUser)return;
-  const key = new Date().toISOString().slice(0,7); // 'YYYY-MM'
-  await setDoc(uDoc('plans', key), { data: JSON.stringify(monthPlan) });
-}
-async function loadMonthPlan(){
-  if(!currentUser)return;
-  const key = new Date().toISOString().slice(0,7);
-  try{
-    const d = await getDoc(uDoc('plans', key));
-    if(d.exists()) monthPlan = JSON.parse(d.data().data||'{}');
-    else monthPlan = {};
-  }catch{ monthPlan={}; }
-}
-
-// 시간 포맷
-function fmtSec(sec){ const m=Math.floor(sec/60),s=sec%60; return m+':'+String(s).padStart(2,'0'); }
-
-// 운동 탭 렌더
 async function renderWorkoutTab(){
   const el=document.getElementById('workout-tab');
   el.innerHTML='<div style="padding:20px;text-align:center;color:var(--mu)">불러오는 중...</div>';
   await loadMonthPlan();
-
-  const monthDates = getMonthDates();
-  const weeks = groupByWeek(monthDates);
-  const now = new Date();
-  const monthLabel = `${now.getFullYear()}년 ${now.getMonth()+1}월`;
-
-  let html = `<div style="padding:0 0 6px"><div style="font-size:15px;font-weight:600;margin-bottom:14px">${monthLabel} 운동 플랜</div>`;
-
-  weeks.forEach((week, wi) => {
-    html += `<div style="margin-bottom:10px">`;
-    html += `<div style="font-size:10px;color:var(--mu);font-weight:500;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px">${wi+1}주차</div>`;
-    week.forEach(dateStr => {
-      const dt = new Date(dateStr+'T00:00:00');
-      const dayIdx = dt.getDay();
-      const dayName = DAY_KO_FULL[dayIdx];
-      const mm = dt.getMonth()+1, dd = dt.getDate();
-      const plan = monthPlan[dateStr] || {};
-      const muscle = plan.muscle ?? '';
-      const isDone = plan.done || false;
-      const totalTime = plan.totalTime || null;
-      const isToday = dateStr === todayStr();
-      const isPast = dt < new Date(new Date().setHours(0,0,0,0));
-
-      html += `<div id="day-row-${dateStr}" onclick="openDayDetail('${dateStr}')" style="display:flex;align-items:center;padding:10px 12px;margin-bottom:6px;background:${isToday?'var(--s3)':'var(--sf)'};border:1px solid ${isToday?'var(--b2)':'var(--br)'};border-radius:12px;cursor:pointer;transition:all .15s;gap:10px">
-        <div style="flex:1;min-width:0">
-          <div style="display:flex;align-items:center;gap:8px">
-            <span style="font-size:13px;font-weight:${isToday?'600':'400'};color:${isToday?'var(--tx)':'var(--mu2)'}">${mm}월 ${dd}일 ${dayName}</span>
-            ${isToday?'<span style="font-size:9px;background:var(--gb);color:var(--gr);padding:1px 6px;border-radius:20px;font-weight:600">오늘</span>':''}
-          </div>
-          <div class="muscle-label" style="font-size:12px;color:${muscle==='휴식'?'var(--mu)':muscle?'var(--bl)':'var(--mu)'};margin-top:3px">${muscle||'미정'}</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
-          ${isDone?`<span style="font-size:11px;color:var(--gr);font-weight:500">완료 ${totalTime?fmtSec(totalTime):''}</span>`:''}
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--mu)" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
-        </div>
-      </div>`;
+  const monthDates=getMonthDates();
+  const weeks=groupByWeek(monthDates);
+  const now=new Date();
+  const monthLabel=now.getFullYear()+'년 '+(now.getMonth()+1)+'월';
+  let html='<div style="padding:0 0 6px"><div style="font-size:15px;font-weight:600;margin-bottom:14px">'+monthLabel+' 운동 플랜</div>';
+  weeks.forEach((week,wi)=>{
+    html+='<div style="margin-bottom:10px"><div style="font-size:10px;color:var(--mu);font-weight:500;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px">'+(wi+1)+'주차</div>';
+    week.forEach(dateStr=>{
+      const dt=new Date(dateStr+'T00:00:00');
+      const dayName=DAY_FULL[dt.getDay()];
+      const mm=dt.getMonth()+1,dd=dt.getDate();
+      const plan=monthPlan[dateStr]||{};
+      const muscle=plan.muscle||'';
+      const isDone=plan.done||false;
+      const totalTime=plan.totalTime||null;
+      const isToday=dateStr===todayStr();
+      html+='<div id="day-row-'+dateStr+'" onclick="openDayDetail(\''+dateStr+'\')" style="display:flex;align-items:center;padding:10px 12px;margin-bottom:6px;background:'+(isToday?'var(--s3)':'var(--sf)')+';border:1px solid '+(isToday?'var(--b2)':'var(--br)')+';border-radius:12px;cursor:pointer;gap:10px">'
+        +'<div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:8px"><span style="font-size:13px;font-weight:'+(isToday?'600':'400')+';color:'+(isToday?'var(--tx)':'var(--mu2)')+'">'+mm+'월 '+dd+'일 '+dayName+'</span>'+(isToday?'<span style="font-size:9px;background:var(--gb);color:var(--gr);padding:1px 6px;border-radius:20px;font-weight:600">오늘</span>':'')+'</div>'
+        +'<div class="muscle-label" style="font-size:12px;color:'+(muscle==='휴식'?'var(--mu)':muscle?'var(--bl)':'var(--mu)')+';margin-top:3px">'+(muscle||'미정')+'</div></div>'
+        +'<div style="display:flex;align-items:center;gap:8px;flex-shrink:0">'+(isDone?'<span style="font-size:11px;color:var(--gr);font-weight:500">완료 '+(totalTime?fmtSec(totalTime):'')+'</span>':'')
+        +'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--mu)" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></div></div>';
     });
-    html += `</div>`;
+    html+='</div>';
   });
-
-  html += `</div>
-  <!-- 날짜 상세 패널 -->
-  <div id="day-detail" style="display:none"></div>`;
-
-  el.innerHTML = html;
-
-  // 오늘 자동 열기
-  if(monthPlan[todayStr()]?.muscle && monthPlan[todayStr()]?.muscle !== '휴식'){
-    openDayDetail(todayStr());
-  }
+  html+='</div><div id="day-detail"></div>';
+  el.innerHTML=html;
+  if(monthPlan[todayStr()]?.muscle&&monthPlan[todayStr()]?.muscle!=='휴식') openDayDetail(todayStr());
 }
-window.renderWorkoutTab = renderWorkoutTab;
+window.renderWorkoutTab=renderWorkoutTab;
 
-// 날짜 상세 (루틴 + 세트 타이머)
 function openDayDetail(dateStr){
-  activeDayKey = dateStr;
-  const dt = new Date(dateStr+'T00:00:00');
-  const mm = dt.getMonth()+1, dd = dt.getDate();
-  const dayName = DAY_KO_FULL[dt.getDay()];
-  const plan = monthPlan[dateStr] || {};
-  const muscle = plan.muscle || '미정';
-  const routines = plan.routines || [];
-  const isDone = plan.done || false;
-
-  const panel = document.getElementById('day-detail');
-  panel.style.display = 'block';
-  panel.scrollIntoView({behavior:'smooth', block:'start'});
-
+  activeDayKey=dateStr;
+  const panel=document.getElementById('day-detail');
+  if(!panel)return;
+  panel.style.display='block';
   renderDayPanel(dateStr);
+  panel.scrollIntoView({behavior:'smooth',block:'start'});
 }
-window.openDayDetail = openDayDetail;
+window.openDayDetail=openDayDetail;
 
 function renderDayPanel(dateStr){
-  const panel = document.getElementById('day-detail');
-  if(!panel) return;
-  const dt = new Date(dateStr+'T00:00:00');
-  const mm = dt.getMonth()+1, dd = dt.getDate();
-  const dayName = DAY_KO_FULL[dt.getDay()];
-  const plan = monthPlan[dateStr] || { muscle:'', routines:[], done:false, totalTime:null };
-  const muscle = plan.muscle || '';
-  const routines = plan.routines || [];
-  const isDone = plan.done || false;
+  const panel=document.getElementById('day-detail');
+  if(!panel)return;
+  const dt=new Date(dateStr+'T00:00:00');
+  const mm=dt.getMonth()+1,dd=dt.getDate();
+  const dayName=DAY_FULL[dt.getDay()];
+  const plan=monthPlan[dateStr]||{muscle:'',routines:[],done:false,totalTime:null};
+  const muscle=plan.muscle||'';
+  const routines=plan.routines||[];
+  const isDone=plan.done||false;
 
-  let html = `<div class="card" style="margin-top:0">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-      <div>
-        <div style="font-size:14px;font-weight:600">${mm}월 ${dd}일 ${dayName}</div>
-        <div style="font-size:12px;color:var(--bl);margin-top:2px">${muscle||'부위 미정'}</div>
-      </div>
-      ${isDone?`<span style="font-size:12px;color:var(--gr);font-weight:600;background:var(--gb);padding:4px 10px;border-radius:20px">완료 ${plan.totalTime?fmtSec(plan.totalTime):''}</span>`:''}
-    </div>
+  let html='<div class="card" style="margin-top:0">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">'
+    +'<div><div style="font-size:14px;font-weight:600">'+mm+'월 '+dd+'일 '+dayName+'</div>'
+    +'<div style="font-size:12px;color:var(--bl);margin-top:2px">'+(muscle||'부위 미정')+'</div></div>'
+    +(isDone?'<span style="font-size:12px;color:var(--gr);font-weight:600;background:var(--gb);padding:4px 10px;border-radius:20px">완료 '+(plan.totalTime?fmtSec(plan.totalTime):'')+'</span>':'')
+    +'</div>'
+    +'<div style="margin-bottom:14px"><div style="font-size:10px;color:var(--mu);font-weight:500;letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px">운동 부위</div>'
+    +'<div style="display:flex;flex-wrap:wrap;gap:6px">'
+    +MUSCLE_LABELS.map(lb=>'<button onclick="setMuscle(\''+dateStr+'\',\''+lb+'\')" style="padding:5px 12px;border-radius:20px;border:1px solid '+(muscle===lb?'var(--bl)':'var(--br)')+';background:'+(muscle===lb?'var(--bb)':'transparent')+';color:'+(muscle===lb?'var(--bl)':'var(--mu)')+';font-size:12px;font-family:inherit">'+lb+'</button>').join('')
+    +'</div></div>'
+    +'<div style="margin-bottom:14px"><div style="font-size:10px;color:var(--mu);font-weight:500;letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px">추천 루틴</div>'
+    +(routines.length===0?'<div style="font-size:12px;color:var(--mu);padding:12px 0">아직 루틴이 없어. 채팅에서 "'+mm+'월 '+dd+'일 '+(muscle||'')+' 루틴 짜줘"라고 말해봐!</div>':'')
+    +routines.map((r,i)=>{
+      const isActive=activeExIdx===i&&activeDayKey===dateStr;
+      const isDoneEx=r.doneTime!=null;
+      return '<div onclick="toggleExercise(\''+dateStr+'\','+i+')" style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--br);cursor:pointer">'
+        +'<div style="flex:1"><div style="font-size:13px;font-weight:500;color:'+(isDoneEx?'var(--gr)':isActive?'var(--ye)':'var(--tx)')+'">'+esc(r.name)+'</div>'
+        +'<div style="font-size:11px;color:var(--mu);margin-top:2px">'+r.sets+'세트'+(r.kg?' · '+r.kg+'kg':'')+'</div></div>'
+        +'<div style="text-align:right;flex-shrink:0">'+(isDoneEx?'<span style="font-size:11px;color:var(--gr)">'+fmtSec(r.doneTime)+'</span>':'')+(isActive?'<span style="font-size:11px;color:var(--ye)">진행중</span>':'')+'</div></div>'
+        +(isActive?renderSetTimer(r,dateStr,i):'');
+    }).join('')
+    +'</div>'
+    +'<div style="display:flex;gap:8px;margin-bottom:4px">'
+    +'<input id="new-ex-name" placeholder="운동 이름" style="flex:1;background:var(--s2);border:1px solid var(--br);border-radius:8px;padding:8px 10px;color:var(--tx);font-size:12px;font-family:inherit;outline:none">'
+    +'<input id="new-ex-sets" placeholder="세트" type="number" min="1" style="width:60px;background:var(--s2);border:1px solid var(--br);border-radius:8px;padding:8px 10px;color:var(--tx);font-size:12px;font-family:inherit;outline:none">'
+    +'<button onclick="addRoutineItem(\''+dateStr+'\')" style="padding:8px 12px;background:var(--gr);border:none;border-radius:8px;color:#0c0e14;font-size:12px;font-weight:600;font-family:inherit">추가</button>'
+    +'</div></div>';
 
-    <!-- 부위 선택 -->
-    <div style="margin-bottom:14px">
-      <div style="font-size:10px;color:var(--mu);font-weight:500;letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px">운동 부위</div>
-      <div style="display:flex;flex-wrap:wrap;gap:6px">
-        ${MUSCLE_LABELS.map(lb=>`
-          <button onclick="setMuscle('${dateStr}','${lb}')" style="padding:5px 12px;border-radius:20px;border:1px solid ${muscle===lb?'var(--bl)':'var(--br)'};background:${muscle===lb?'var(--bb)':'transparent'};color:${muscle===lb?'var(--bl)':'var(--mu)'};font-size:12px;font-family:inherit;transition:all .15s">${lb||'없음'}</button>
-        `).join('')}
-      </div>
-    </div>
-
-    <!-- 루틴 목록 -->
-    <div style="margin-bottom:14px">
-      <div style="font-size:10px;color:var(--mu);font-weight:500;letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px">추천 루틴</div>
-      ${routines.length===0?`<div style="font-size:12px;color:var(--mu);padding:12px 0">아직 루틴이 없어. 채팅에서 "${mm}월 ${dd}일 ${muscle||''} 루틴 짜줘"라고 말해봐!</div>`:''}
-      ${routines.map((r,i)=>{
-        const isActive = activeExIdx===i && activeDayKey===dateStr;
-        const isDoneEx = r.doneTime != null;
-        return `<div id="ex-row-${i}" onclick="toggleExercise('${dateStr}',${i})" style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--br);cursor:pointer">
-          <div style="flex:1">
-            <div style="font-size:13px;font-weight:500;color:${isDoneEx?'var(--gr)':isActive?'var(--ye)':'var(--tx)'}">${esc(r.name)}</div>
-            <div style="font-size:11px;color:var(--mu);margin-top:2px">${r.sets}세트${r.kg?` · ${r.kg}kg`:''}</div>
-          </div>
-          <div style="text-align:right;flex-shrink:0">
-            ${isDoneEx?`<span style="font-size:11px;color:var(--gr)">${fmtSec(r.doneTime)}</span>`:''}
-            ${isActive?`<span style="font-size:11px;color:var(--ye)">진행중</span>`:''}
-          </div>
-        </div>
-        ${isActive?renderSetTimer(r, dateStr, i):''}`;
-      }).join('')}
-    </div>
-
-    <!-- 루틴 추가 -->
-    <div style="display:flex;gap:8px;margin-bottom:4px">
-      <input id="new-ex-name" placeholder="운동 이름" style="flex:1;background:var(--s2);border:1px solid var(--br);border-radius:8px;padding:8px 10px;color:var(--tx);font-size:12px;font-family:inherit;outline:none">
-      <input id="new-ex-sets" placeholder="세트" type="number" min="1" style="width:60px;background:var(--s2);border:1px solid var(--br);border-radius:8px;padding:8px 10px;color:var(--tx);font-size:12px;font-family:inherit;outline:none">
-      <button onclick="addRoutineItem('${dateStr}')" style="padding:8px 12px;background:var(--gr);border:none;border-radius:8px;color:#0c0e14;font-size:12px;font-weight:600;font-family:inherit">추가</button>
-    </div>
-  </div>`;
-
-  panel.innerHTML = html;
+  panel.innerHTML=html;
 }
 
-function renderSetTimer(r, dateStr, idx){
-  return `<div id="set-timer-${idx}" style="background:var(--s2);border-radius:10px;padding:12px;margin-top:6px">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-      <span id="timer-display-${idx}" style="font-size:20px;font-weight:700;font-family:'DM Mono',monospace;color:var(--ye)">0:00</span>
-      <span id="set-count-${idx}" style="font-size:13px;color:var(--mu)">${doneSet} / ${r.sets} 세트</span>
-    </div>
-    <div style="display:flex;gap:8px">
-      <button id="start-btn-${idx}" onclick="startSet('${dateStr}',${idx})" style="flex:1;padding:9px;background:var(--gr);border:none;border-radius:8px;color:#0c0e14;font-size:13px;font-weight:600;font-family:inherit">기록</button>
-      <button onclick="endSet('${dateStr}',${idx})" style="flex:1;padding:9px;background:var(--s3);border:1px solid var(--br);border-radius:8px;color:var(--tx);font-size:13px;font-family:inherit">종료</button>
-    </div>
-  </div>`;
+function renderSetTimer(r,dateStr,idx){
+  return '<div style="background:var(--s2);border-radius:10px;padding:12px;margin-top:6px">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
+    +'<span id="timer-display-'+idx+'" style="font-size:20px;font-weight:700;font-family:\'DM Mono\',monospace;color:var(--ye)">0:00</span>'
+    +'<span id="set-count-'+idx+'" style="font-size:13px;color:var(--mu)">'+doneSet+' / '+r.sets+' 세트</span></div>'
+    +'<div style="display:flex;gap:8px">'
+    +'<button id="start-btn-'+idx+'" onclick="startSet(\''+dateStr+'\','+idx+')" style="flex:1;padding:9px;background:var(--gr);border:none;border-radius:8px;color:#0c0e14;font-size:13px;font-weight:600;font-family:inherit">기록</button>'
+    +'<button onclick="endSet(\''+dateStr+'\','+idx+')" style="flex:1;padding:9px;background:var(--s3);border:1px solid var(--br);border-radius:8px;color:var(--tx);font-size:13px;font-family:inherit">종료</button>'
+    +'</div></div>';
 }
 
-// 부위 설정
-async function setMuscle(dateStr, muscle){
-  if(!monthPlan[dateStr]) monthPlan[dateStr] = { muscle:'', routines:[], done:false, totalTime:null };
-  monthPlan[dateStr].muscle = muscle;
+async function setMuscle(dateStr,muscle){
+  if(!monthPlan[dateStr])monthPlan[dateStr]={muscle:'',routines:[],done:false,totalTime:null};
+  monthPlan[dateStr].muscle=muscle;
   await saveMonthPlan();
   renderDayPanel(dateStr);
-  // 달력 행도 업데이트
-  const row = document.getElementById('day-row-'+dateStr);
-  if(row){ const span=row.querySelector('.muscle-label'); if(span) span.textContent=muscle||'미정'; }
+  const row=document.getElementById('day-row-'+dateStr);
+  if(row){const lb=row.querySelector('.muscle-label');if(lb){lb.textContent=muscle||'미정';lb.style.color=muscle==='휴식'?'var(--mu)':muscle?'var(--bl)':'var(--mu)';}}
 }
-window.setMuscle = setMuscle;
+window.setMuscle=setMuscle;
 
-// 루틴 아이템 추가
 async function addRoutineItem(dateStr){
-  const name = document.getElementById('new-ex-name')?.value.trim();
-  const sets = parseInt(document.getElementById('new-ex-sets')?.value)||3;
-  if(!name) return;
-  if(!monthPlan[dateStr]) monthPlan[dateStr]={ muscle:'', routines:[], done:false, totalTime:null };
-  monthPlan[dateStr].routines.push({ name, sets, doneTime:null });
-  await saveMonthPlan();
+  const name=document.getElementById('new-ex-name')?.value.trim();
+  const sets=parseInt(document.getElementById('new-ex-sets')?.value)||3;
+  if(!name)return;
+  if(!monthPlan[dateStr])monthPlan[dateStr]={muscle:'',routines:[],done:false,totalTime:null};
+  monthPlan[dateStr].routines.push({name,sets,doneTime:null});
+  await saveMonthPlan();renderDayPanel(dateStr);
+}
+window.addRoutineItem=addRoutineItem;
+
+function toggleExercise(dateStr,idx){
+  if(activeExIdx===idx&&activeDayKey===dateStr){clearInterval(setTimer);setTimer=null;activeExIdx=null;activeDayKey=null;doneSet=0;}
+  else{clearInterval(setTimer);setTimer=null;activeExIdx=idx;activeDayKey=dateStr;doneSet=0;}
   renderDayPanel(dateStr);
 }
-window.addRoutineItem = addRoutineItem;
+window.toggleExercise=toggleExercise;
 
-// 루틴 아이템 파싱 (채팅에서 자동 추가)
-async function parseAndSaveRoutineFromChat(text, dateStr){
-  // "운동명 | N세트" or "운동명 N세트" 패턴
-  const lines = text.split('\n');
-  const items = [];
-  for(const line of lines){
-    const m1 = line.match(/^[\d\.\-\*\s]*([가-힣a-zA-Z\s]+?)\s*[|\|]\s*(\d+)\s*세트/);
-    const m2 = line.match(/^[\d\.\-\*\s]*([가-힣a-zA-Z\s]+?)\s+(\d+)\s*세트/);
-    const m = m1||m2;
-    if(m){ const name=m[1].trim(); const sets=parseInt(m[2]); if(name&&sets) items.push({name,sets,doneTime:null}); }
-  }
-  if(items.length>0){
-    if(!monthPlan[dateStr]) monthPlan[dateStr]={ muscle:'', routines:[], done:false, totalTime:null };
-    monthPlan[dateStr].routines = items;
-    await saveMonthPlan();
-    return true;
-  }
-  return false;
+function startSet(dateStr,idx){
+  if(setTimer)return;
+  setStart=Date.now();
+  const disp=document.getElementById('timer-display-'+idx);
+  setTimer=setInterval(()=>{if(disp)disp.textContent=fmtSec(Math.floor((Date.now()-setStart)/1000));},500);
+  const btn=document.getElementById('start-btn-'+idx);
+  if(btn)btn.disabled=true;
 }
+window.startSet=startSet;
 
-// 운동 선택 (타이머 토글)
-function toggleExercise(dateStr, idx){
-  if(activeExIdx===idx && activeDayKey===dateStr){
-    // 닫기
-    clearInterval(setTimer); setTimer=null;
-    activeExIdx=null; activeDayKey=null; doneSet=0;
+async function endSet(dateStr,idx){
+  clearInterval(setTimer);setTimer=null;
+  const elapsed=setStart?Math.floor((Date.now()-setStart)/1000):0;
+  setStart=null;doneSet++;
+  const plan=monthPlan[dateStr];if(!plan)return;
+  const r=plan.routines[idx];if(!r)return;
+  r.doneTime=(r.doneTime||0)+elapsed;
+  if(doneSet>=r.sets){
+    activeExIdx=null;activeDayKey=null;doneSet=0;
+    const allDone=plan.routines.length>0&&plan.routines.every(ex=>ex.doneTime!=null);
+    if(allDone){plan.done=true;plan.totalTime=plan.routines.reduce((s,ex)=>s+(ex.doneTime||0),0);}
+    await saveMonthPlan();renderDayPanel(dateStr);
+    if(plan.done){const row=document.getElementById('day-row-'+dateStr);if(row){const div=row.querySelector('div:last-child');if(div&&!div.querySelector('.done-badge')){const badge=document.createElement('span');badge.className='done-badge';badge.style.cssText='font-size:11px;color:var(--gr);font-weight:500';badge.textContent='완료 '+(plan.totalTime?fmtSec(plan.totalTime):'');div.prepend(badge);}}}
   } else {
-    clearInterval(setTimer); setTimer=null;
-    activeExIdx=idx; activeDayKey=dateStr; doneSet=0;
-  }
-  renderDayPanel(dateStr);
-}
-window.toggleExercise = toggleExercise;
-
-// 세트 시작
-function startSet(dateStr, idx){
-  if(setTimer) return; // 이미 실행 중
-  setStart = Date.now();
-  const disp = document.getElementById(`timer-display-${idx}`);
-  setTimer = setInterval(()=>{
-    if(!disp) return;
-    const elapsed = Math.floor((Date.now()-setStart)/1000);
-    disp.textContent = fmtSec(elapsed);
-  }, 500);
-  document.getElementById(`start-btn-${idx}`)?.setAttribute('disabled','true');
-}
-window.startSet = startSet;
-
-// 세트 종료
-async function endSet(dateStr, idx){
-  clearInterval(setTimer); setTimer=null;
-  const elapsed = setStart ? Math.floor((Date.now()-setStart)/1000) : 0;
-  setStart = null;
-  doneSet++;
-
-  const plan = monthPlan[dateStr];
-  if(!plan) return;
-  const r = plan.routines[idx];
-  if(!r) return;
-
-  if(doneSet >= r.sets){
-    // 이 운동 완료 — 총 시간 기록
-    r.doneTime = r.doneTime ? r.doneTime + elapsed : elapsed;
-    activeExIdx = null;
-    activeDayKey = null;
-    doneSet = 0;
-
-    // 모든 운동 완료 체크
-    const allDone = plan.routines.length > 0 && plan.routines.every(ex => ex.doneTime != null);
-    if(allDone){
-      plan.done = true;
-      plan.totalTime = plan.routines.reduce((s,ex)=>s+(ex.doneTime||0), 0);
-    }
-    await saveMonthPlan();
-    renderDayPanel(dateStr);
-    // 달력 행 완료 표시 업데이트
-    const row = document.getElementById('day-row-'+dateStr);
-    if(row && plan.done){
-      const existing = row.querySelector('.done-badge');
-      if(!existing){
-        const badge = document.createElement('span');
-        badge.className = 'done-badge';
-        badge.style.cssText = 'font-size:11px;color:var(--gr);font-weight:500';
-        badge.textContent = '완료 ' + (plan.totalTime ? fmtSec(plan.totalTime) : '');
-        row.querySelector('div:last-child')?.prepend(badge);
-      }
-    }
-  } else {
-    // 세트 진행 중
-    r.doneTime = (r.doneTime||0) + elapsed;
-    const startBtn = document.getElementById('start-btn-'+idx);
-    const timerDisp = document.getElementById('timer-display-'+idx);
-    const setCount = document.getElementById('set-count-'+idx);
-    if(startBtn) startBtn.removeAttribute('disabled');
-    if(timerDisp) timerDisp.textContent = '0:00';
-    if(setCount) setCount.textContent = doneSet + ' / ' + r.sets + ' 세트';
+    const btn=document.getElementById('start-btn-'+idx);const disp=document.getElementById('timer-display-'+idx);const cnt=document.getElementById('set-count-'+idx);
+    if(btn)btn.disabled=false;if(disp)disp.textContent='0:00';if(cnt)cnt.textContent=doneSet+' / '+r.sets+' 세트';
   }
 }
-window.endSet = endSet;
+window.endSet=endSet;
 
-// 채팅에서 루틴 감지 → 자동 저장
-async function detectAndSaveRoutineFromChat(reply, userText){
-  // "N월 M일" 날짜 감지
-  const dateMatch = userText.match(/(\d{1,2})월\s*(\d{1,2})일/);
-  if(!dateMatch) return;
-  const now = new Date();
-  const targetDate = new Date(now.getFullYear(), parseInt(dateMatch[1])-1, parseInt(dateMatch[2]));
-  const dateStr = targetDate.toISOString().split('T')[0];
-  await parseAndSaveRoutineFromChat(reply, dateStr);
-
-  // 부위 감지
-  const muscleMatch = userText.match(/가슴|등|하체|어깨|팔|전신|스트레칭/);
-  if(muscleMatch){
-    if(!monthPlan[dateStr]) monthPlan[dateStr]={ muscle:'', routines:[], done:false, totalTime:null };
-    monthPlan[dateStr].muscle = muscleMatch[0];
-    await saveMonthPlan();
-  }
-}
-
-// 시작
+// ── 시작 ─────────────────────────────────────────────────────
 bindAuth();
 showScreen('screen-login');
 </script>
