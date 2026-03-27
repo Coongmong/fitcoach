@@ -149,6 +149,7 @@ button{font-family:'DM Sans','Noto Sans KR',sans-serif;cursor:pointer}
         <button class="tab-btn active" data-tab="chat" onclick="switchTab('chat')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>채팅</button>
         <button class="tab-btn" data-tab="nutrition" onclick="switchTab('nutrition')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/></svg>영양</button>
         <button class="tab-btn" data-tab="workout" onclick="switchTab('workout')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 4v16M18 4v16M3 8h18M3 16h18"/></svg>운동</button>
+        <button class="tab-btn" data-tab="inbody" onclick="switchTab('inbody')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>인바디</button>
       </div>
       <button class="icon-btn" onclick="doSignOut()" title="로그아웃"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
     </div>
@@ -176,12 +177,13 @@ button{font-family:'DM Sans','Noto Sans KR',sans-serif;cursor:pointer}
   </div>
   <div id="nutrition-tab" class="scroll-tab" style="display:none"></div>
   <div id="workout-tab" class="scroll-tab" style="display:none"></div>
+  <div id="inbody-tab" class="scroll-tab" style="display:none"></div>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut as fbSignOut, updateProfile } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc, collection, query, where, getDocs, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, doc, setDoc, getDoc, deleteDoc, collection, query, where, getDocs, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const fbApp = initializeApp({apiKey:"AIzaSyB6RH_zNuyLlm3Hh1tBSBZsYHxiLYUQQvo",authDomain:"fitcoach-96d39.firebaseapp.com",projectId:"fitcoach-96d39",storageBucket:"fitcoach-96d39.firebasestorage.app",messagingSenderId:"468530084824",appId:"1:468530084824:web:1c2eb2dcb1814a75ac10ad"});
 const auth = getAuth(fbApp);
@@ -559,7 +561,7 @@ function buildSysChat(){
     +'- 해당 날짜에 루틴이 이미 있으면 → 기존 루틴을 먼저 보여주고 "바꿀까?"라고 물어볼 것\n'
     +'- 오늘 운동이 이미 완료된 경우 → 완료됐음을 인지하고 내일 또는 다음 운동 관련 조언\n'
     +'- 운동 환경(시간/장소/레벨)이 프로필에 저장돼 있으면 다시 묻지 말 것. 없을 때만 1회 질문\n'
-    +'- 운동 질문 → 주동근·자세·주의사항 순\n'
+    +'- 운동 자세/방법 질문 → 주동근(2~3줄)만 간략히 설명. 상세 자세·주의사항은 아래 자동으로 카드가 표시되므로 중복 서술 금지\n'
     +'- 루틴 출력 시 반드시 "운동명 | N세트" 형식으로 번호 목록 제시 (파싱에 필요)';
 }
 
@@ -637,12 +639,16 @@ async function send(){
       const routineSaved=await detectAndSaveRoutineFromChat(reply,txt);
       hideTyping();addMsg('assistant',reply);
       if(routineSaved){
-        // 루틴 저장됐음을 시각적으로 알림
         setTimeout(()=>{
           const savedDateMatch=(txt+reply).match(/(\d{1,2})월\s*(\d{1,2})일/);
           const label=savedDateMatch?savedDateMatch[0]:'해당 날짜';
           addMsg('assistant','✅ '+label+' 루틴이 운동 탭에 저장됐어! 운동 탭에서 확인해봐.');
         },300);
+      }
+      // 운동 자세 질문 감지 → 이미지 검색
+      const poseKw=extractExerciseName(txt);
+      if(poseKw){
+        setTimeout(()=>addExerciseImages(poseKw),500);
       }
     }catch(e){hideTyping();addMsg('assistant','오류: '+e.message+'\n\n• API 키 확인\n• Anthropic 크레딧 확인');}
   }
@@ -653,7 +659,551 @@ async function send(){
 }
 window.send=send;
 
-// ── UI 헬퍼 ──────────────────────────────────────────────────
+// ── 운동 자세 이미지 DB (free-exercise-db 공개 도메인) ────────
+const IMG_BASE='https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/';
+
+// 운동별 자세 포인트 (EXERCISE_IMG_DB보다 먼저 선언)
+const EXERCISE_TIPS={
+  '스쿼트':{ok:['발을 어깨 너비로 벌리고 발끝은 15~30° 외회전','무릎은 발끝 방향과 일치','가슴은 세우고 시선은 정면','대퇴부가 바닥과 평행할 때까지 내려가기','복압 유지하며 밀어올리기'],bad:['무릎이 안쪽으로 무너짐 (니 케이브)','허리가 과도하게 굽거나 젖힘','발뒤꿈치가 들림','무게중심이 앞으로 쏠림']},
+  '벤치프레스':{ok:['등 아치 만들기 (어깨뼈 모으고 등 살짝 뜨기)','바는 가슴 중간~아래쪽으로 내리기','발을 바닥에 단단히 고정','팔꿈치 각도 약 75° 유지','바벨을 어깨너비보다 약간 넓게 잡기'],bad:['엉덩이가 벤치에서 뜸','바가 목 쪽으로 내려감','팔꿈치를 완전히 잠금','반동으로 밀어올림']},
+  '데드리프트':{ok:['바는 정강이에 붙이고 시작','엉덩이는 내리고 가슴은 올리기','등을 곧게 펴고 복압 유지','바를 몸에 붙여서 끌어올리기','무릎과 엉덩이를 동시에 펴기'],bad:['허리가 둥글게 굽음 (가장 위험)','바가 몸에서 멀어짐','무릎이 먼저 펴짐','반동 이용']},
+  '풀업':{ok:['어깨너비보다 약간 넓게 잡기','매달릴 때 어깨를 내리기','가슴을 바 방향으로 당기기','내려올 때 천천히 컨트롤','복부 긴장 유지'],bad:['반동으로 올라옴','턱만 겨우 걸치고 내려옴','어깨가 올라붙어 있음','완전히 매달리지 않음']},
+  '오버헤드프레스':{ok:['발을 어깨너비로 벌리고 코어 긴장','바를 쇄골 위에 놓고 시작','밀어올릴 때 머리를 살짝 뒤로','팔꿈치는 약간 앞쪽을 향하게','꼭대기에서 완전히 팔 펴기'],bad:['허리를 과도하게 젖힘','팔꿈치가 너무 벌어짐','목을 앞으로 내밀기','불안정한 코어']},
+};
+const DEFAULT_TIPS={
+  ok:['시선 정면 유지','척추 중립 자세 유지','호흡: 힘 쓸 때 내쉬고, 돌아올 때 들이쉬기','관절 완전 잠금 방지 (약 5° 여유)','코어 복압 유지하며 동작 내내 긴장'],
+  bad:['허리 과도한 굽힘·젖힘','관절에 충격이 가는 반동 이용','호흡 멈추기','무게중심이 한쪽으로 쏠림']
+};
+const EXERCISE_EN={'스쿼트':'squat barbell','벤치프레스':'bench press barbell','데드리프트':'deadlift barbell','오버헤드프레스':'overhead press barbell','풀업':'pull up','플랭크':'plank','런지':'lunge barbell','레그프레스':'leg press','바벨로우':'barbell row bent over','랫풀다운':'lat pulldown wide grip','사이드레터럴레이즈':'lateral raise dumbbell','덤벨컬':'bicep curl dumbbell','크런치':'crunch abs'};
+
+// 운동명 → {폴더, tips}
+const EXERCISE_IMG_DB={
+  // ── 하체 ──
+  '스쿼트':{f:'Barbell_Full_Squat',tips:EXERCISE_TIPS['스쿼트']},
+  '바벨스쿼트':{f:'Barbell_Full_Squat',tips:EXERCISE_TIPS['스쿼트']},
+  '프론트스쿼트':{f:'Barbell_Full_Squat',tips:EXERCISE_TIPS['스쿼트']},
+  '런지':{f:'Barbell_Lunge',tips:{ok:['상체 곧게 유지','앞 무릎 90° 구부리기','뒷 무릎 바닥 가까이','코어 긴장 유지'],bad:['무릎이 발끝 앞으로','상체가 앞으로 기울어짐','보폭이 너무 좁음']}},
+  '레그프레스':{f:'Leg_Press',tips:{ok:['발을 플랫폼 중앙에','무릎 90° 기준','등을 패드에 밀착','발뒤꿈치로 밀기'],bad:['무릎이 안쪽으로','엉덩이가 패드에서 뜸','너무 깊이 내려감']}},
+  '레그컬':{f:'Lying_Leg_Curls',tips:{ok:['엉덩이를 패드에 밀착','발목을 당기며 수축','천천히 내리기','코어 긴장'],bad:['엉덩이가 들림','반동 사용','너무 빠른 동작']}},
+  '레그익스텐션':{f:'Leg_Extensions',tips:{ok:['등을 패드에 밀착','발등으로 밀어올리기','꼭대기에서 잠깐 수축','천천히 내리기'],bad:['너무 빠른 속도','발목을 구부림','허리가 아치됨']}},
+  '힙스러스트':{f:'Barbell_Hip_Thrust',tips:{ok:['어깨를 벤치에','바는 골반 위에','엉덩이를 최대로 수축','발바닥 전체로 밀기'],bad:['허리로 올리기','무릎이 벌어짐','골반이 기울어짐']}},
+  '카프레이즈':{f:'Standing_Calf_Raises',tips:{ok:['발끝으로 최대한 올라가기','꼭대기에서 1초 유지','천천히 내리기','무릎 약간 굽히기'],bad:['반동 사용','너무 빠른 동작','발가락으로만 하기']}},
+  // ── 가슴 ──
+  '벤치프레스':{f:'Barbell_Bench_Press_-_Medium_Grip',tips:EXERCISE_TIPS['벤치프레스']},
+  '덤벨벤치프레스':{f:'Dumbbell_Bench_Press',tips:EXERCISE_TIPS['벤치프레스']},
+  '인클라인프레스':{f:'Barbell_Incline_Bench_Press_-_Medium_Grip',tips:{ok:['등 아치 유지','바를 윗가슴에 내리기','팔꿈치 각도 75°','발 바닥에 고정'],bad:['팔꿈치가 너무 벌어짐','바가 목 쪽으로','엉덩이가 뜸']}},
+  '체스트플라이':{f:'Dumbbell_Flyes',tips:{ok:['팔꿈치를 약간 구부린 채 유지','가슴 수축에 집중','천천히 넓게 펼치기','가슴 스트레칭 느끼기'],bad:['팔꿈치를 완전히 핌','너무 넓게 펼침','반동 사용']}},
+  '딥스':{f:'Chest_Dip',tips:{ok:['상체를 앞으로 약간 기울이기','팔꿈치를 바깥쪽으로','가슴이 당겨지는 느낌','천천히 내리기'],bad:['상체 직립 (삼두 위주)','팔꿈치가 안쪽으로','너무 깊이 내려감']}},
+  '케이블플라이':{f:'Cable_Crossover',tips:{ok:['가슴 수축에 집중','팔꿈치를 약간 구부림','핸들을 모을 때 가슴 조이기','천천히 되돌리기'],bad:['팔꿈치를 완전히 핌','상체가 앞뒤로 흔들림','반동 사용']}},
+  '푸시업':{f:'Push-Up',tips:{ok:['몸을 일직선으로','팔꿈치를 약 45°로','가슴이 바닥에 거의 닿게','코어 긴장 유지'],bad:['엉덩이가 올라가거나 처짐','팔꿈치가 완전히 벌어짐','머리를 앞으로 내밈']}},
+  // ── 등 ──
+  '데드리프트':{f:'Barbell_Deadlift',tips:EXERCISE_TIPS['데드리프트']},
+  '바벨로우':{f:'Bent_Over_Barbell_Row',tips:{ok:['상체 45° 기울이기','바를 배꼽 방향으로','팔꿈치를 뒤로 당기기','등 근육으로 수축'],bad:['허리가 굽음','반동으로 당기기','너무 직립 자세','팔꿈치가 벌어짐']}},
+  '랫풀다운':{f:'Wide-Grip_Lat_Pulldown',tips:{ok:['어깨너비보다 넓게 잡기','가슴을 펴고 약간 뒤로','바를 쇄골 위까지','등 광배근으로 당기기'],bad:['너무 뒤로 젖힘','팔 힘으로만 당기기','바를 목 뒤로']}},
+  '시티드로우':{f:'Seated_Cable_Rows',tips:{ok:['등을 곧게 세우기','팔꿈치를 뒤로','배꼽 방향으로 당기기','천천히 되돌리기'],bad:['상체가 앞뒤로 크게 흔들림','허리가 굽음','너무 빠른 동작']}},
+  '풀업':{f:'Close-Grip_Front_Lat_Pulldown',tips:EXERCISE_TIPS['풀업']},
+  '친업':{f:'Close-Grip_Front_Lat_Pulldown',tips:EXERCISE_TIPS['풀업']},
+  '원암덤벨로우':{f:'One-Arm_Dumbbell_Row',tips:{ok:['등을 벤치에 지지','팔꿈치를 위로','등 광배근으로 당기기','어깨를 내리고 수축'],bad:['허리가 회전','어깨가 따라 올라감','팔로만 당기기']}},
+  // ── 어깨 ──
+  '오버헤드프레스':{f:'Barbell_Shoulder_Press',tips:EXERCISE_TIPS['오버헤드프레스']},
+  '숄더프레스':{f:'Barbell_Shoulder_Press',tips:EXERCISE_TIPS['오버헤드프레스']},
+  '사이드레터럴레이즈':{f:'Side_Lateral_Raise',tips:{ok:['팔꿈치를 약간 구부림','새끼손가락 쪽으로 올리기','어깨 높이까지만','천천히 내리기'],bad:['너무 높이 올리기','반동 사용','등이 굽음']}},
+  '프론트레이즈':{f:'Dumbbell_Front_Raise',tips:{ok:['팔을 어깨 높이까지','천천히 내리기','코어 긴장 유지','팔꿈치 약간 구부림'],bad:['너무 높이 올리기','반동 사용','상체가 흔들림']}},
+  '페이스풀':{f:'Face_Pull',tips:{ok:['팔꿈치를 높이 들기','줄을 얼굴 쪽으로','어깨 외회전','천천히 되돌리기'],bad:['팔꿈치가 내려감','목 쪽으로 당기기','너무 무거운 중량']}},
+  // ── 팔 ──
+  '바벨컬':{f:'Barbell_Curl',tips:{ok:['팔꿈치를 옆구리에 고정','완전 가동 범위','꼭대기에서 이두 수축','천천히 내리기'],bad:['팔꿈치가 앞뒤로 흔들림','허리로 반동','너무 빠른 동작']}},
+  '덤벨컬':{f:'Dumbbell_Alternate_Bicep_Curl',tips:{ok:['한 팔씩 번갈아','이두 완전 수축','천천히 내리기','팔꿈치 고정'],bad:['팔꿈치가 앞으로 나옴','반동 사용','너무 빠른 동작']}},
+  '해머컬':{f:'Hammer_Curls',tips:{ok:['엄지가 위를 향하게','팔꿈치 고정','완전 가동 범위','이두 수축 느끼기'],bad:['팔꿈치가 움직임','반동 사용','너무 빠름']}},
+  '트라이셉스푸시다운':{f:'Triceps_Pushdown',tips:{ok:['팔꿈치를 옆구리에 고정','바를 완전히 내리기','삼두 수축 느끼기','천천히 올리기'],bad:['팔꿈치가 앞으로','상체가 앞으로 기울어짐','반동 사용']}},
+  '오버헤드트라이셉스익스텐션':{f:'Overhead_Triceps_Extension',tips:{ok:['팔꿈치를 귀 옆에','완전히 올리기','삼두 수축','천천히 내리기'],bad:['팔꿈치가 벌어짐','허리가 과도하게 젖힘','너무 빠른 동작']}},
+  // ── 코어 ──
+  '플랭크':{f:'Pushup',tips:{ok:['머리부터 발까지 일직선','팔꿈치는 어깨 바로 아래','코어 강하게 긴장','호흡 유지'],bad:['엉덩이가 올라가거나 처짐','머리를 너무 들거나 내림','팔꿈치가 너무 벌어짐']}},
+  '크런치':{f:'Crunch',tips:{ok:['발을 바닥에 고정','복부로 상체 들어올리기','목을 당기지 않기','천천히 내리기'],bad:['목으로 올라오기','반동 사용','허리를 완전히 바닥에서 들기']}},
+  '레그레이즈':{f:'Flat_Bench_Lying_Leg_Raise',tips:{ok:['등을 바닥에 밀착','복부로 다리 올리기','천천히 내리기','허리 뜨지 않게'],bad:['허리가 바닥에서 뜸','반동 사용','너무 빠름']}},
+  // ── 전신 ──
+  '데드리프트스쿼트':{f:'Barbell_Full_Squat',tips:EXERCISE_TIPS['스쿼트']},
+};
+
+function extractExerciseName(text){
+  const poseWords=['자세','방법','하는 법','어떻게','폼','알려줘','알려줄','설명','운동법'];
+  const hasPose=poseWords.some(w=>text.includes(w));
+  if(!hasPose) return null;
+  const exMatch=text.match(/([가-힣a-zA-Z]+(?:[\s\-][가-힣a-zA-Z]+)?)\s*(?:자세|방법|폼|하는\s*법|알려|어떻게|운동\s*방법|운동법)/);
+  if(!exMatch) return null;
+  const name=exMatch[1].trim();
+  if(name.length<2||['운동','오늘','어떤','어느','이','그','저'].includes(name)) return null;
+  return name;
+}
+
+// exercises.json 캐시 (앱 세션 동안 한 번만 로드)
+let exerciseDB=null;
+let exerciseDBLoading=false;
+const EXDB_URL='https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/dist/exercises.json';
+const IMG_CDN='https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/';
+
+async function loadExerciseDB(){
+  if(exerciseDB) return exerciseDB;
+  if(exerciseDBLoading) return null;
+  exerciseDBLoading=true;
+  try{
+    const res=await fetch(EXDB_URL);
+    if(!res.ok) throw new Error('DB 로드 실패');
+    exerciseDB=await res.json();
+    return exerciseDB;
+  }catch(e){
+    console.warn('ExerciseDB 로드 오류:',e);
+    return null;
+  }
+}
+
+// 한글 운동명 → 영문 검색어
+function koToEn(name){
+  const map={
+    '스쿼트':'squat','바벨스쿼트':'barbell squat','프론트스쿼트':'front squat',
+    '벤치프레스':'bench press','덤벨벤치프레스':'dumbbell bench press',
+    '인클라인프레스':'incline bench press','디클라인프레스':'decline bench press',
+    '데드리프트':'deadlift','루마니안데드리프트':'romanian deadlift',
+    '바벨로우':'barbell row','덤벨로우':'dumbbell row','원암로우':'one arm row',
+    '랫풀다운':'lat pulldown','풀업':'pull up','친업':'chin up',
+    '시티드로우':'seated row','케이블로우':'cable row',
+    '오버헤드프레스':'overhead press','숄더프레스':'shoulder press',
+    '덤벨숄더프레스':'dumbbell shoulder press','아놀드프레스':'arnold press',
+    '사이드레터럴레이즈':'lateral raise','프론트레이즈':'front raise',
+    '리어레터럴레이즈':'rear delt raise','페이스풀':'face pull',
+    '바벨컬':'barbell curl','덤벨컬':'dumbbell curl','해머컬':'hammer curl',
+    '케이블컬':'cable curl','프리처컬':'preacher curl','인클라인컬':'incline curl',
+    '트라이셉스푸시다운':'triceps pushdown','오버헤드트라이셉스익스텐션':'overhead triceps extension',
+    '클로즈그립벤치프레스':'close grip bench press','딥스':'dips',
+    '런지':'lunge','불가리안스플릿스쿼트':'bulgarian split squat',
+    '레그프레스':'leg press','레그컬':'leg curl','레그익스텐션':'leg extension',
+    '힙스러스트':'hip thrust','글루트브릿지':'glute bridge',
+    '카프레이즈':'calf raise','시티드카프레이즈':'seated calf raise',
+    '체스트플라이':'chest fly','케이블플라이':'cable crossover',
+    '펙덱플라이':'pec deck','인클라인플라이':'incline fly',
+    '푸시업':'push up','와이드푸시업':'wide push up',
+    '플랭크':'plank','사이드플랭크':'side plank',
+    '크런치':'crunch','싯업':'sit up','레그레이즈':'leg raise',
+    '케이블크런치':'cable crunch','행잉레그레이즈':'hanging leg raise',
+    '풀오버':'pullover','시티드케이블로우':'seated cable row',
+    '덤벨숄더쉬러그':'shrug','바벨숄더쉬러그':'barbell shrug',
+    '업라이트로우':'upright row','벤트오버레이즈':'bent over raise',
+    '힙힌지':'hip hinge','케틀벨스윙':'kettlebell swing',
+    '버피':'burpee','마운틴클라이머':'mountain climber',
+    '점프스쿼트':'jump squat','박스점프':'box jump',
+    '스텝업':'step up','스플릿스쿼트':'split squat',
+    '굿모닝':'good morning','힙익스텐션':'hip extension',
+    '하이퍼익스텐션':'hyperextension','백익스텐션':'back extension',
+  };
+  for(const[k,v]of Object.entries(map)){
+    if(name.includes(k)) return v;
+  }
+  return name; // 영문이면 그대로
+}
+
+// exercises.json에서 영문명으로 검색
+function searchExercise(db, query){
+  if(!db||!query) return null;
+  const q=query.toLowerCase().trim();
+  // 1. 정확한 이름 매칭
+  let found=db.find(e=>e.name.toLowerCase()===q);
+  if(found&&found.images?.length>=2) return found;
+  // 2. 이름에 포함된 것
+  found=db.find(e=>e.name.toLowerCase().includes(q)&&e.images?.length>=2);
+  if(found) return found;
+  // 3. 단어 분리 매칭
+  const words=q.split(' ');
+  found=db.find(e=>{
+    const en=e.name.toLowerCase();
+    return words.every(w=>en.includes(w))&&e.images?.length>=2;
+  });
+  return found||null;
+}
+
+async function addExerciseImages(exerciseName){
+  const tips=Object.entries(EXERCISE_TIPS).find(([k])=>exerciseName.includes(k))?.[1]||DEFAULT_TIPS;
+  const enQuery=koToEn(exerciseName);
+  const ytQuery=encodeURIComponent(enQuery+' proper form tutorial');
+  const ytUrl='https://www.youtube.com/results?search_query='+ytQuery;
+
+  const list=document.getElementById('msg-list');
+  const row=document.createElement('div');
+  row.className='msg-row fade-in';
+
+  // 로딩 상태로 먼저 표시
+  row.innerHTML='<div class="avatar"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0c0e14" stroke-width="2.5" stroke-linecap="round"><path d="M6 4v16M18 4v16M3 8h18M3 16h18"/></svg></div>'
+    +'<div class="bubble" style="max-width:92%;padding:12px">'
+    +'<div style="font-size:13px;font-weight:600;color:var(--bl);margin-bottom:8px">📐 '+esc(exerciseName)+' 자세 가이드</div>'
+    +'<div id="ex-img-loading" style="display:flex;align-items:center;gap:8px;padding:12px;background:var(--s2);border-radius:8px;margin-bottom:8px">'
+    +'<div class="dot" style="background:var(--bl)"></div><div class="dot" style="background:var(--bl);animation-delay:.15s"></div><div class="dot" style="background:var(--bl);animation-delay:.3s"></div>'
+    +'<span style="font-size:11px;color:var(--mu)">운동 이미지 불러오는 중...</span></div>'
+    +'<div id="ex-img-content"></div>'
+    +'</div>';
+  list.appendChild(row);
+  list.scrollTop=list.scrollHeight;
+
+  // DB 로드 & 이미지 검색
+  const db=await loadExerciseDB();
+  const exData=db?searchExercise(db,enQuery):null;
+
+  const loadingEl=row.querySelector('#ex-img-loading');
+  const contentEl=row.querySelector('#ex-img-content');
+  if(loadingEl) loadingEl.style.display='none';
+
+  let imgHtml='';
+  if(exData&&exData.images?.length>=2){
+    const img0=IMG_CDN+exData.images[0];
+    const img1=IMG_CDN+exData.images[1];
+    imgHtml='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">'
+      +'<div style="border:1px solid var(--gd);border-radius:10px;overflow:hidden">'
+      +'<div style="font-size:9px;font-weight:600;color:var(--gr);padding:4px 8px;background:var(--gb)">✅ 시작 자세</div>'
+      +'<img src="'+img0+'" style="width:100%;display:block;max-height:140px;object-fit:cover;background:var(--s2)" loading="lazy" alt="시작자세" onerror="this.closest(\'div\').querySelector(\'div:first-child\').textContent=\'이미지 없음\'">'
+      +'</div>'
+      +'<div style="border:1px solid #7f1d1d;border-radius:10px;overflow:hidden">'
+      +'<div style="font-size:9px;font-weight:600;color:var(--re);padding:4px 8px;background:var(--rb)">🔄 동작 자세</div>'
+      +'<img src="'+img1+'" style="width:100%;display:block;max-height:140px;object-fit:cover;background:var(--s2)" loading="lazy" alt="동작자세" onerror="this.closest(\'div\').querySelector(\'div:first-child\').textContent=\'이미지 없음\'">'
+      +'</div></div>'
+      +'<div style="font-size:10px;color:var(--mu);margin-bottom:8px">📌 '+esc(exData.name)+' (영문명)</div>';
+  } else {
+    // DB에서 못 찾으면 — 부위별 대표 운동 이미지로 대체
+    const fallbackFolder=
+      exerciseName.includes('가슴')||exerciseName.includes('벤치')||exerciseName.includes('플라이')||exerciseName.includes('체스트')?'Barbell_Bench_Press_-_Medium_Grip'
+      :exerciseName.includes('등')||exerciseName.includes('로우')||exerciseName.includes('풀')||exerciseName.includes('랫')?'Bent_Over_Barbell_Row'
+      :exerciseName.includes('하체')||exerciseName.includes('스쿼트')||exerciseName.includes('런지')||exerciseName.includes('레그')?'Barbell_Full_Squat'
+      :exerciseName.includes('어깨')||exerciseName.includes('숄더')||exerciseName.includes('프레스')||exerciseName.includes('레이즈')?'Barbell_Shoulder_Press'
+      :exerciseName.includes('이두')||exerciseName.includes('컬')?'Barbell_Curl'
+      :exerciseName.includes('삼두')||exerciseName.includes('트라이')||exerciseName.includes('딥')?'Triceps_Pushdown'
+      :exerciseName.includes('코어')||exerciseName.includes('복근')||exerciseName.includes('크런치')||exerciseName.includes('플랭크')?'Crunch'
+      :'Barbell_Full_Squat'; // 최후 폴백
+
+    const fb0=IMG_CDN+fallbackFolder+'/0.jpg';
+    const fb1=IMG_CDN+fallbackFolder+'/1.jpg';
+    imgHtml='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">'
+      +'<div style="border:1px solid var(--gd);border-radius:10px;overflow:hidden">'
+      +'<div style="font-size:9px;font-weight:600;color:var(--gr);padding:4px 8px;background:var(--gb)">✅ 시작 자세</div>'
+      +'<img src="'+fb0+'" style="width:100%;display:block;max-height:140px;object-fit:cover;background:var(--s2)" loading="lazy" alt="시작자세">'
+      +'</div>'
+      +'<div style="border:1px solid #7f1d1d;border-radius:10px;overflow:hidden">'
+      +'<div style="font-size:9px;font-weight:600;color:var(--re);padding:4px 8px;background:var(--rb)">🔄 동작 자세</div>'
+      +'<img src="'+fb1+'" style="width:100%;display:block;max-height:140px;object-fit:cover;background:var(--s2)" loading="lazy" alt="동작자세">'
+      +'</div></div>'
+      +'<div style="font-size:10px;color:var(--mu);margin-bottom:8px">📌 유사 운동 자세 참고 이미지</div>';
+  }
+
+  if(contentEl) contentEl.innerHTML=
+    imgHtml
+    +'<a href="'+ytUrl+'" target="_blank" style="display:flex;align-items:center;gap:7px;padding:7px 10px;background:#ff0000;border-radius:8px;text-decoration:none;margin-bottom:10px">'
+    +'<svg width="13" height="13" viewBox="0 0 24 24" fill="white"><path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/></svg>'
+    +'<span style="color:white;font-size:11px;font-weight:600">자세 영상 보기 →</span>'
+    +'</a>'
+    +'<div style="font-size:11px;font-weight:600;color:var(--gr);margin-bottom:4px">✅ 올바른 자세 핵심</div>'
+    +'<div style="font-size:11px;color:var(--mu2);line-height:1.8;margin-bottom:8px">'+tips.ok.map(t=>'• '+t).join('<br>')+'</div>'
+    +'<div style="padding:8px 10px;background:var(--rb);border-radius:8px">'
+    +'<div style="font-size:11px;font-weight:600;color:var(--re);margin-bottom:4px">⚠️ 이런 자세는 조심해</div>'
+    +'<div style="font-size:11px;color:#fca5a5;line-height:1.8">'+tips.bad.map(t=>'• '+t).join('<br>')+'</div>'
+    +'</div>';
+
+  list.scrollTop=list.scrollHeight;
+}
+
+// ── 운동별 SVG 일러스트 (이미지 없는 운동 폴백) ──────────────
+function buildExerciseSVG(name){
+  // 스틱 피겨 기반 SVG — 운동별 특화
+  const base=name.includes('스쿼트')?sqSVG()
+    :name.includes('벤치')?bpSVG()
+    :name.includes('데드')?dlSVG()
+    :name.includes('풀업')||name.includes('친업')?puSVG()
+    :name.includes('플랭크')?plankSVG()
+    :name.includes('숄더')||name.includes('오버헤드')||name.includes('프레스')?ohpSVG()
+    :defaultSVG();
+  return base;
+}
+
+function svgWrap(content){
+  return '<svg viewBox="0 0 100 120" width="100%" style="max-height:110px" xmlns="http://www.w3.org/2000/svg">'+content+'</svg>';
+}
+// 스틱 피겨 공통 요소
+const HEAD=(x,y,r=7,col='#e8eaf2')=>`<circle cx="${x}" cy="${y}" r="${r}" fill="${col}" stroke="${col}" stroke-width="1"/>`;
+const LINE=(x1,y1,x2,y2,col='#e8eaf2',w=3)=>`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${col}" stroke-width="${w}" stroke-linecap="round"/>`;
+
+function sqSVG(){
+  // 올바른: 척추 곧게, 무릎 발끝 방향
+  const good=svgWrap(
+    HEAD(50,12)
+    +LINE(50,19,50,55,'#22c55e') // 척추 곧게
+    +LINE(50,30,35,45,'#22c55e')+LINE(50,30,65,45,'#22c55e') // 팔
+    +LINE(50,55,35,80,'#22c55e')+LINE(50,55,65,80,'#22c55e') // 허벅지 - 넓게
+    +LINE(35,80,30,105,'#22c55e')+LINE(65,80,70,105,'#22c55e') // 정강이
+    +LINE(30,105,22,105,'#22c55e')+LINE(70,105,78,105,'#22c55e') // 발
+    // 수직 가이드라인
+    +`<line x1="50" y1="5" x2="50" y2="115" stroke="#22c55e" stroke-width="0.5" stroke-dasharray="3,3" opacity="0.4"/>`
+  );
+  // 잘못된: 무릎 안으로 무너짐, 허리 굽음
+  const bad=svgWrap(
+    HEAD(50,12)
+    +LINE(50,19,52,55,'#f87171') // 허리 살짝 굽음
+    +LINE(52,30,37,45,'#f87171')+LINE(52,30,67,45,'#f87171')
+    +LINE(52,55,42,80,'#f87171')+LINE(52,55,62,80,'#f87171') // 무릎 안으로
+    +LINE(42,80,35,105,'#f87171')+LINE(62,80,65,105,'#f87171')
+    +LINE(35,105,27,105,'#f87171')+LINE(65,105,73,105,'#f87171')
+    +`<text x="50" y="118" text-anchor="middle" fill="#f87171" font-size="7">무릎 안쪽 무너짐</text>`
+    +`<path d="M45,40 Q60,35 55,55" fill="none" stroke="#f87171" stroke-width="1.5" stroke-dasharray="2,2" opacity="0.6"/>`
+  );
+  return {good,bad};
+}
+function bpSVG(){
+  // 올바른: 누워서 바 들기 - 등 아치
+  const good=svgWrap(
+    `<rect x="10" y="85" width="80" height="6" rx="3" fill="#4b5563"/>` // 벤치
+    +HEAD(50,55)
+    +LINE(50,62,50,80,'#22c55e') // 몸통 (약간 아치)
+    +LINE(25,68,75,68,'#22c55e') // 바
+    +LINE(25,68,15,75,'#22c55e')+LINE(75,68,85,75,'#22c55e') // 어깨
+    +LINE(50,75,35,85,'#22c55e')+LINE(50,75,65,85,'#22c55e') // 다리
+    +`<rect x="15" y="63" width="70" height="5" rx="2.5" fill="#60a5fa" opacity="0.7"/>` // 바벨
+    +`<text x="50" y="112" text-anchor="middle" fill="#22c55e" font-size="7">등 아치 & 어깨뼈 모으기</text>`
+  );
+  const bad=svgWrap(
+    `<rect x="10" y="85" width="80" height="6" rx="3" fill="#4b5563"/>`
+    +HEAD(50,55)
+    +LINE(50,62,50,80,'#f87171')
+    +LINE(25,65,75,65,'#f87171') // 바를 너무 높이
+    +LINE(25,65,10,78,'#f87171')+LINE(75,65,90,78,'#f87171') // 팔꿈치 너무 벌어짐
+    +LINE(50,75,35,85,'#f87171')+LINE(50,75,65,85,'#f87171')
+    +`<rect x="15" y="60" width="70" height="5" rx="2.5" fill="#f87171" opacity="0.7"/>`
+    +`<text x="50" y="112" text-anchor="middle" fill="#f87171" font-size="7">팔꿈치 과도하게 벌어짐</text>`
+  );
+  return {good,bad};
+}
+function dlSVG(){
+  const good=svgWrap(
+    HEAD(50,10)
+    +LINE(50,17,50,45,'#22c55e') // 등 곧게
+    +LINE(50,28,35,40,'#22c55e')+LINE(50,28,65,40,'#22c55e')
+    +LINE(50,45,35,70,'#22c55e')+LINE(50,45,65,70,'#22c55e')
+    +LINE(35,70,32,95,'#22c55e')+LINE(65,70,68,95,'#22c55e')
+    +`<rect x="20" y="90" width="60" height="8" rx="2" fill="#60a5fa" opacity="0.8"/>` // 바벨
+    +`<text x="50" y="115" text-anchor="middle" fill="#22c55e" font-size="7">등 곧게 & 바 몸에 붙이기</text>`
+  );
+  const bad=svgWrap(
+    HEAD(55,10)
+    +`<path d="M55,17 Q45,30 40,45" fill="none" stroke="#f87171" stroke-width="3" stroke-linecap="round"/>` // 등 굽음
+    +LINE(40,28,25,38,'#f87171')+LINE(40,28,55,38,'#f87171')
+    +LINE(40,45,28,70,'#f87171')+LINE(40,45,52,70,'#f87171')
+    +LINE(28,70,25,95,'#f87171')+LINE(52,70,55,95,'#f87171')
+    +`<rect x="18" y="90" width="60" height="8" rx="2" fill="#f87171" opacity="0.7"/>`
+    +`<text x="50" y="115" text-anchor="middle" fill="#f87171" font-size="7">허리 굽음 (부상 위험!)</text>`
+  );
+  return {good,bad};
+}
+function puSVG(){
+  // 풀업: 매달려 올라가는 동작
+  const good=svgWrap(
+    `<rect x="20" y="5" width="60" height="5" rx="2" fill="#60a5fa" opacity="0.8"/>` // 봉
+    +LINE(35,10,35,20,'#22c55e')+LINE(65,10,65,20,'#22c55e') // 손
+    +HEAD(50,28)
+    +LINE(50,35,50,60,'#22c55e')
+    +LINE(50,42,33,52,'#22c55e')+LINE(50,42,67,52,'#22c55e')
+    +LINE(50,60,42,85,'#22c55e')+LINE(50,60,58,85,'#22c55e')
+    +LINE(42,85,40,105,'#22c55e')+LINE(58,85,60,105,'#22c55e')
+    +`<text x="50" y="118" text-anchor="middle" fill="#22c55e" font-size="7">코어 긴장 & 가슴 당기기</text>`
+  );
+  const bad=svgWrap(
+    `<rect x="20" y="5" width="60" height="5" rx="2" fill="#60a5fa" opacity="0.8"/>`
+    +LINE(35,10,35,20,'#f87171')+LINE(65,10,65,20,'#f87171')
+    +HEAD(50,30)
+    +`<path d="M50,37 Q58,50 55,65" fill="none" stroke="#f87171" stroke-width="3" stroke-linecap="round"/>` // 몸 흔들림
+    +LINE(50,44,33,54,'#f87171')+LINE(50,44,67,54,'#f87171')
+    +LINE(55,65,48,88,'#f87171')+LINE(55,65,62,88,'#f87171')
+    +LINE(48,88,46,108,'#f87171')+LINE(62,88,64,108,'#f87171')
+    +`<text x="50" y="118" text-anchor="middle" fill="#f87171" font-size="7">반동 사용 & 몸 흔들림</text>`
+  );
+  return {good,bad};
+}
+function plankSVG(){
+  const good=svgWrap(
+    HEAD(20,50)
+    +LINE(27,50,80,50,'#22c55e') // 몸통 일직선
+    +LINE(27,50,22,65,'#22c55e')+LINE(22,65,20,80,'#22c55e') // 팔
+    +LINE(80,50,85,65,'#22c55e') // 발
+    +`<line x1="10" y1="50" x2="95" y2="50" stroke="#22c55e" stroke-width="0.5" stroke-dasharray="3,3" opacity="0.4"/>`
+    +`<text x="50" y="95" text-anchor="middle" fill="#22c55e" font-size="7">엉덩이-어깨-발 일직선</text>`
+  );
+  const bad=svgWrap(
+    HEAD(20,50)
+    +LINE(27,50,55,50,'#f87171')
+    +`<path d="M55,50 Q70,40 80,45" fill="none" stroke="#f87171" stroke-width="3" stroke-linecap="round"/>` // 엉덩이 올라감
+    +LINE(27,50,22,65,'#f87171')+LINE(22,65,20,80,'#f87171')
+    +LINE(80,45,85,60,'#f87171')
+    +`<text x="50" y="95" text-anchor="middle" fill="#f87171" font-size="7">엉덩이가 올라가거나 처짐</text>`
+  );
+  return {good,bad};
+}
+function ohpSVG(){
+  const good=svgWrap(
+    HEAD(50,10)
+    +LINE(50,17,50,55,'#22c55e')
+    +LINE(30,30,70,30,'#22c55e') // 바
+    +LINE(30,30,22,20,'#22c55e')+LINE(70,30,78,20,'#22c55e') // 팔 올리기
+    +LINE(50,55,38,80,'#22c55e')+LINE(50,55,62,80,'#22c55e')
+    +LINE(38,80,35,105,'#22c55e')+LINE(62,80,65,105,'#22c55e')
+    +`<rect x="18" y="25" width="64" height="5" rx="2.5" fill="#60a5fa" opacity="0.8"/>`
+    +`<text x="50" y="118" text-anchor="middle" fill="#22c55e" font-size="7">코어 긴장 & 척추 중립</text>`
+  );
+  const bad=svgWrap(
+    HEAD(50,10)
+    +`<path d="M50,17 Q55,35 52,55" fill="none" stroke="#f87171" stroke-width="3" stroke-linecap="round"/>` // 허리 젖힘
+    +LINE(30,30,70,30,'#f87171')
+    +LINE(30,30,22,20,'#f87171')+LINE(70,30,78,20,'#f87171')
+    +LINE(52,55,40,80,'#f87171')+LINE(52,55,64,80,'#f87171')
+    +LINE(40,80,37,105,'#f87171')+LINE(64,80,67,105,'#f87171')
+    +`<rect x="18" y="25" width="64" height="5" rx="2.5" fill="#f87171" opacity="0.7"/>`
+    +`<text x="50" y="118" text-anchor="middle" fill="#f87171" font-size="7">허리 과도하게 젖힘</text>`
+  );
+  return {good,bad};
+}
+function defaultSVG(){
+  // 기본 스틱 피겨
+  const good=svgWrap(
+    HEAD(50,15)
+    +LINE(50,22,50,60,'#22c55e')
+    +LINE(50,35,32,50,'#22c55e')+LINE(50,35,68,50,'#22c55e')
+    +LINE(50,60,38,88,'#22c55e')+LINE(50,60,62,88,'#22c55e')
+    +LINE(38,88,34,108,'#22c55e')+LINE(62,88,66,108,'#22c55e')
+    +`<text x="50" y="118" text-anchor="middle" fill="#22c55e" font-size="7">올바른 자세</text>`
+  );
+  const bad=svgWrap(
+    HEAD(50,15)
+    +`<path d="M50,22 Q58,40 55,60" fill="none" stroke="#f87171" stroke-width="3" stroke-linecap="round"/>`
+    +LINE(55,35,37,50,'#f87171')+LINE(55,35,73,50,'#f87171')
+    +LINE(55,60,43,88,'#f87171')+LINE(55,60,67,88,'#f87171')
+    +LINE(43,88,39,108,'#f87171')+LINE(67,88,71,108,'#f87171')
+    +`<text x="50" y="118" text-anchor="middle" fill="#f87171" font-size="7">잘못된 자세</text>`
+  );
+  return {good,bad};
+}
+
+// ── 인바디 탭 ────────────────────────────────────────────────
+let inbodyPage=0;
+const INBODY_PER_PAGE=10;
+
+async function saveInbodyLog(imgDataUrl,analysisText){
+  if(!currentUser)return;
+  const id='ib'+Date.now();
+  const now=new Date();
+  await setDoc(uDoc('inbody',id),{
+    id, at:now.toISOString(),
+    date:makeDateStr(now.getFullYear(),now.getMonth()+1,now.getDate()),
+    imgDataUrl:imgDataUrl||null,
+    analysis:analysisText||''
+  });
+}
+
+async function loadInbodyLogs(){
+  if(!currentUser)return[];
+  try{
+    const q=query(uCol('inbody'),orderBy('at','desc'));
+    const snap=await getDocs(q);
+    return snap.docs.map(d=>d.data());
+  }catch(e){console.warn('인바디 로드 오류:',e);return[];}
+}
+
+async function deleteInbodyConfirm(id,name){
+  showConfirm(name+' 인바디 기록을 삭제할까?',async()=>{
+    try{
+      await deleteDoc(uDoc('inbody',id));
+      renderInbodyTab();
+    }catch(e){alert('삭제 실패: '+e.message);}
+  });
+}
+window.deleteInbodyConfirm=deleteInbodyConfirm;
+
+async function renderInbodyTab(){
+  const el=document.getElementById('inbody-tab');
+  el.innerHTML='<div style="padding:20px;text-align:center;color:var(--mu)">불러오는 중...</div>';
+  const logs=await loadInbodyLogs();
+  const total=logs.length;
+  const totalPages=Math.max(1,Math.ceil(total/INBODY_PER_PAGE));
+  if(inbodyPage>=totalPages)inbodyPage=totalPages-1;
+  const pageLogs=logs.slice(inbodyPage*INBODY_PER_PAGE,(inbodyPage+1)*INBODY_PER_PAGE);
+
+  let html='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">'
+    +'<div style="font-size:15px;font-weight:600">인바디 기록</div>'
+    +'<button onclick="document.getElementById(\'ib-file\').click()" style="display:flex;align-items:center;gap:6px;padding:7px 12px;background:var(--gr);border:none;border-radius:9px;color:#0c0e14;font-size:12px;font-weight:600;font-family:inherit">'
+    +'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>사진 추가'
+    +'</button></div>'
+    +'<input type="file" id="ib-file" accept="image/*" capture="environment" style="display:none" onchange="handleInbodyFile(event)">';
+
+  if(total===0){
+    html+='<div class="card empty-state"><div style="font-size:36px;margin-bottom:10px">📋</div>'
+      +'<div style="font-size:13px;color:var(--mu);margin-bottom:6px">인바디 기록이 없어</div>'
+      +'<div style="font-size:11px;color:var(--mu2)">상단 사진 추가 버튼으로 인바디 결과지를 올려봐</div></div>';
+  } else {
+    pageLogs.forEach(log=>{
+      const dt=new Date(log.at);
+      const dateLabel=makeDateStr(dt.getFullYear(),dt.getMonth()+1,dt.getDate());
+      const timeLabel=dt.getHours()+':'+String(dt.getMinutes()).padStart(2,'0');
+      html+='<div class="card" style="margin-bottom:10px">'
+        +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
+        +'<div>'
+        +'<div style="font-size:13px;font-weight:600">'+dateLabel+'</div>'
+        +'<div style="font-size:11px;color:var(--mu);margin-top:2px">'+timeLabel+' 기록</div>'
+        +'</div>'
+        +'<button onclick="deleteInbodyConfirm(\''+esc(log.id)+'\',\''+dateLabel+'\')" style="width:26px;height:26px;border-radius:7px;border:1px solid var(--rb);background:var(--rb);color:var(--re);font-size:13px;display:flex;align-items:center;justify-content:center;padding:0">✕</button>'
+        +'</div>'
+        +(log.imgDataUrl?'<img src="'+esc(log.imgDataUrl)+'" style="width:100%;border-radius:10px;margin-bottom:10px;max-height:200px;object-fit:contain;background:var(--s2)" alt="인바디">':'')
+        +(log.analysis?'<div style="font-size:12px;line-height:1.7;color:var(--mu2);background:var(--s2);border-radius:8px;padding:10px">'+esc(log.analysis).replace(/\n/g,'<br>')+'</div>':'')
+        +'</div>';
+    });
+
+    // 페이지네이션
+    if(totalPages>1){
+      html+='<div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:6px">'
+        +'<button onclick="inbodyPage=Math.max(0,inbodyPage-1);renderInbodyTab()" '
+        +'style="padding:6px 14px;border-radius:8px;border:1px solid var(--br);background:transparent;color:var(--mu);font-family:inherit;font-size:12px" '
+        +(inbodyPage===0?'disabled style="padding:6px 14px;border-radius:8px;border:1px solid var(--br);background:transparent;color:var(--br);font-family:inherit;font-size:12px"':'')
+        +'>이전</button>'
+        +'<span style="font-size:12px;color:var(--mu2)">'+(inbodyPage+1)+' / '+totalPages+'</span>'
+        +'<button onclick="inbodyPage=Math.min('+(totalPages-1)+',inbodyPage+1);renderInbodyTab()" '
+        +'style="padding:6px 14px;border-radius:8px;border:1px solid var(--br);background:transparent;color:var(--mu);font-family:inherit;font-size:12px" '
+        +(inbodyPage===totalPages-1?'disabled style="padding:6px 14px;border-radius:8px;border:1px solid var(--br);background:transparent;color:var(--br);font-family:inherit;font-size:12px"':'')
+        +'>다음</button>'
+        +'</div>';
+    }
+  }
+  el.innerHTML=html;
+}
+window.renderInbodyTab=renderInbodyTab;
+
+async function handleInbodyFile(e){
+  const file=e.target.files?.[0];if(!file)return;
+  const b64=await fileToBase64(file);
+  const imgDataUrl='data:'+file.type+';base64,'+b64;
+  e.target.value='';
+
+  // Firestore에서 직전 인바디 기록 가져오기 (추이 분석용)
+  const logs=await loadInbodyLogs();
+  const prevAnalysis=logs.length>0?('이전 기록('+logs[0].date+'): '+logs[0].analysis.slice(0,200)):'없음';
+
+  const el=document.getElementById('inbody-tab');
+  el.innerHTML='<div style="padding:40px;text-align:center;color:var(--mu)"><div style="font-size:24px;margin-bottom:10px">🔍</div>인바디 분석 중...</div>';
+
+  try{
+    const system='당신은 인바디 전문 분석 AI. 인바디 결과지 사진을 보고 주요 수치를 읽어서 분석해줘. 반말로 친근하게. 이전 기록: '+prevAnalysis;
+    const prompt='이 인바디 결과지를 분석해줘.\n\n다음 순서로 간결하게 정리해줘:\n1. 주요 수치 (체중/체지방률/골격근량/BMI 등 보이는 것)\n2. 현재 상태 평가 (2~3줄)\n'+(logs.length>0?'3. 이전 기록 대비 변화 및 추이 분석 (2~3줄)\n':'')+'마지막에 한 줄 핵심 조언';
+    const reply=await fetchClaude({model:'claude-sonnet-4-5',max_tokens:800,system,
+      messages:[{role:'user',content:[
+        {type:'image',source:{type:'base64',media_type:file.type,data:b64}},
+        {type:'text',text:prompt}
+      ]}]
+    });
+    await saveInbodyLog(imgDataUrl,reply);
+    await renderInbodyTab();
+  }catch(err){
+    await saveInbodyLog(imgDataUrl,'분석 실패: '+err.message);
+    await renderInbodyTab();
+  }
+}
+window.handleInbodyFile=handleInbodyFile;
 function setBusy(v){busy=v;updateSendBtn();}
 function cleanReply(t){return t.replace(/```json[\s\S]*?```/gi,'').replace(/```[\s\S]*?```/g,'').replace(/\n{3,}/g,'\n\n').trim();}
 function addMsg(role,content,imgPrev){
@@ -702,12 +1252,13 @@ window.cancelImg=cancelImg;window.setInput=setInput;window.handleKey=handleKey;w
 
 // ── 탭 전환 ──────────────────────────────────────────────────
 function switchTab(id){
-  ['chat','nutrition','workout'].forEach(t=>{
+  ['chat','nutrition','workout','inbody'].forEach(t=>{
     document.getElementById(t+'-tab').style.display=t===id?(t==='chat'?'flex':'block'):'none';
     document.querySelector('[data-tab="'+t+'"]').classList.toggle('active',t===id);
   });
   if(id==='nutrition') renderNutritionTab();
-  if(id==='workout') renderWorkoutTab(); // async지만 fire-and-forget OK
+  if(id==='workout') renderWorkoutTab();
+  if(id==='inbody') renderInbodyTab();
 }
 window.switchTab=switchTab;
 
@@ -720,22 +1271,91 @@ function barHTML(h,color,label,sub){
   return '<div class="bar-wrap"><div class="bar-sub">'+(sub||'')+'</div><div class="bar-bg"><div class="bar-fill" style="height:'+Math.max(4,h)+'px;background:'+color+'"></div></div><div class="bar-lbl" style="color:'+color+'">'+label+'</div></div>';
 }
 
-// ── 영양 탭 ──────────────────────────────────────────────────
-// ── 영양 탭 ──────────────────────────────────────────────────
-function getMonthDatesNut(){
-  const now=new Date();const y=now.getFullYear(),m=now.getMonth();
+// ── 영양 탭 상태 ─────────────────────────────────────────────
+let nutCalYear=new Date().getFullYear();
+let nutCalMonth=new Date().getMonth(); // 0-based
+let nutSelectedDate=todayStr(); // 클릭된 날짜
+
+function getMonthDatesNut(y,m){
   const days=[];const total=new Date(y,m+1,0).getDate();
-  for(let d=1;d<=total;d++){days.push(makeDateStr(y,m+1,d));}
+  for(let d=1;d<=total;d++) days.push(makeDateStr(y,m+1,d));
   return days;
 }
 
+function nutCalPrev(){
+  if(nutCalMonth===0){nutCalYear--;nutCalMonth=11;}else nutCalMonth--;
+  renderNutritionTab();
+}
+function nutCalNext(){
+  if(nutCalMonth===11){nutCalYear++;nutCalMonth=0;}else nutCalMonth++;
+  renderNutritionTab();
+}
+function nutSelectDate(dateStr){
+  nutSelectedDate=dateStr;
+  renderNutritionTab();
+  // 선택한 날 카드로 스크롤
+  setTimeout(()=>{
+    const card=document.getElementById('nut-day-card');
+    if(card) card.scrollIntoView({behavior:'smooth',block:'start'});
+  },50);
+}
+window.nutCalPrev=nutCalPrev;
+window.nutCalNext=nutCalNext;
+window.nutSelectDate=nutSelectDate;
+
+// 커스텀 확인 팝업
+function showConfirm(msg, onOk){
+  let overlay=document.getElementById('fc-confirm-overlay');
+  if(!overlay){
+    overlay=document.createElement('div');
+    overlay.id='fc-confirm-overlay';
+    overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:9999;padding:24px';
+    document.body.appendChild(overlay);
+  }
+  overlay.innerHTML='<div style="background:var(--sf);border:1px solid var(--br);border-radius:16px;padding:20px;max-width:300px;width:100%">'
+    +'<div style="font-size:14px;font-weight:600;margin-bottom:8px;color:var(--tx)">확인</div>'
+    +'<div style="font-size:13px;color:var(--mu2);line-height:1.6;margin-bottom:18px">'+msg+'</div>'
+    +'<div style="display:flex;gap:8px">'
+    +'<button id="fc-confirm-cancel" style="flex:1;padding:10px;border-radius:9px;border:1px solid var(--br);background:transparent;color:var(--mu2);font-size:13px;font-family:inherit">취소</button>'
+    +'<button id="fc-confirm-ok" style="flex:1;padding:10px;border-radius:9px;border:none;background:var(--re);color:#fff;font-size:13px;font-weight:600;font-family:inherit">삭제</button>'
+    +'</div></div>';
+  overlay.style.display='flex';
+  document.getElementById('fc-confirm-cancel').onclick=()=>{ overlay.style.display='none'; };
+  document.getElementById('fc-confirm-ok').onclick=()=>{ overlay.style.display='none'; onOk(); };
+  overlay.onclick=(e)=>{ if(e.target===overlay) overlay.style.display='none'; };
+}
+
+async function deleteFoodConfirm(foodId){
+  const food=foodAll.find(f=>f.id===foodId);
+  if(!food) return;
+  showConfirm('"'+food.name+'" 기록을 삭제할까?\n삭제하면 되돌릴 수 없어.', async()=>{
+    try{
+      await deleteDoc(uDoc('foods', foodId));
+      foodAll=foodAll.filter(f=>f.id!==foodId);
+      foodToday=foodAll.filter(f=>f.date===todayStr());
+      renderNutritionTab();
+    }catch(e){ alert('삭제 실패: '+e.message); }
+  });
+}
+window.deleteFoodConfirm=deleteFoodConfirm;
+
 function renderNutritionTab(){
   const el=document.getElementById('nutrition-tab');
+
+  // 선택된 날짜의 음식
+  const selFood=foodAll.filter(f=>f.date===nutSelectedDate);
+  const selKcal=selFood.reduce((s,f)=>s+f.kcal,0);
+  const selProt=selFood.reduce((s,f)=>s+f.prot,0);
+  const selCarb=selFood.reduce((s,f)=>s+f.carb,0);
+  const selFat=selFood.reduce((s,f)=>s+f.fat,0);
+  const isSelToday=nutSelectedDate===todayStr();
+
+  // 오늘 데이터 (알림용)
   const tKcal=foodToday.reduce((s,f)=>s+f.kcal,0);
   const tProt=foodToday.reduce((s,f)=>s+f.prot,0);
   const tCarb=foodToday.reduce((s,f)=>s+f.carb,0);
   const tFat=foodToday.reduce((s,f)=>s+f.fat,0);
-  const kPct=Math.round((tKcal/GOAL_KCAL())*100);
+  const kPct=Math.round((selKcal/GOAL_KCAL())*100);
   const GOAL_CARB=280,GOAL_FAT=70;
 
   // 7일 칼로리
@@ -744,41 +1364,49 @@ function renderNutritionTab(){
   const maxK=Math.max(...Object.values(w7),GOAL_KCAL(),1);
   const rc=kPct>110?C.re:kPct>90?C.ye:C.or;
 
-  // 월간 캘린더 — 날짜별 칼로리 합산
-  const monthDates=getMonthDatesNut();
+  // 캘린더 데이터
+  const monthDates=getMonthDatesNut(nutCalYear,nutCalMonth);
   const monthKcal={};
   foodAll.forEach(f=>{if(!monthKcal[f.date])monthKcal[f.date]=0;monthKcal[f.date]+=f.kcal;});
-  const now=new Date();
-  const monthLabel=now.getFullYear()+'년 '+(now.getMonth()+1)+'월';
+  const monthLabel=nutCalYear+'년 '+(nutCalMonth+1)+'월';
+  const nowDt=new Date();
 
-  // 월간 캘린더 HTML
+  // 캘린더 HTML
   let calHtml='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:6px">';
   ['일','월','화','수','목','금','토'].forEach(d=>{calHtml+='<div style="font-size:9px;color:var(--mu);text-align:center;padding:3px 0">'+d+'</div>';});
   calHtml+='</div><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px">';
-  const firstDow=new Date(now.getFullYear(),now.getMonth(),1).getDay();
+  const firstDow=new Date(nutCalYear,nutCalMonth,1).getDay();
   for(let i=0;i<firstDow;i++) calHtml+='<div></div>';
   monthDates.forEach(dateStr=>{
     const dt=new Date(dateStr+'T00:00:00');
     const dd=dt.getDate();
     const kcal=monthKcal[dateStr]||0;
     const isToday=dateStr===todayStr();
-    const hasFuture=dt>now&&!isToday;
+    const isSel=dateStr===nutSelectedDate;
+    const isFuture=dt>nowDt&&!isToday;
     const pct=kcal>0?Math.min(kcal/GOAL_KCAL(),1):0;
     const dotColor=kcal===0?'transparent':pct>1.1?C.re:pct>0.9?C.ye:C.gr;
-    calHtml+='<div style="display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 2px;border-radius:8px;background:'+(isToday?'var(--s3)':'transparent')+';border:1px solid '+(isToday?'var(--b2)':'transparent')+'">'
-      +'<span style="font-size:11px;color:'+(isToday?'var(--tx)':hasFuture?'var(--mu)':'var(--mu2)')+(isToday?';font-weight:600':'')+'">'+(dd)+'</span>'
-      +'<div style="width:5px;height:5px;border-radius:50%;background:'+dotColor+'"></div>'
+    calHtml+='<div onclick="nutSelectDate(\''+dateStr+'\')" style="display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 2px;border-radius:8px;cursor:pointer;'
+      +'background:'+(isSel?'var(--bl)':isToday?'var(--s3)':'transparent')+';'
+      +'border:1px solid '+(isSel?'var(--bl)':isToday?'var(--b2)':'transparent')+'">'
+      +'<span style="font-size:11px;color:'+(isSel?'#fff':isToday?'var(--tx)':isFuture?'var(--mu)':'var(--mu2)')+(isToday&&!isSel?';font-weight:600':isSel?';font-weight:600':'')+'">'+(dd)+'</span>'
+      +'<div style="width:5px;height:5px;border-radius:50%;background:'+(isSel?'rgba(255,255,255,0.6)':dotColor)+'"></div>'
       +'</div>';
   });
   calHtml+='</div>';
 
-  // 오늘 먹은 음식 — 시간 표시
-  const foodListHtml=foodToday.length===0
-    ?'<div class="empty-state"><div style="font-size:28px;margin-bottom:8px">📷</div><div style="font-size:13px;color:'+C.mu+';margin-bottom:4px">아직 오늘 음식 기록이 없어</div><div style="font-size:11px;color:'+C.mu2+'">채팅 탭 카메라로 음식 사진을 찍어봐</div></div>'
-    :foodToday.map(f=>{
+  // 선택된 날 음식 목록
+  const selDateLabel=(()=>{
+    const dt=new Date(nutSelectedDate+'T00:00:00');
+    return (dt.getMonth()+1)+'월 '+dt.getDate()+'일 '+(isSelToday?'(오늘)':'');
+  })();
+
+  const foodListHtml=selFood.length===0
+    ?'<div class="empty-state" style="padding:16px 0"><div style="font-size:24px;margin-bottom:6px">📷</div><div style="font-size:12px;color:'+C.mu+'">'+selDateLabel+' 음식 기록이 없어</div>'+(isSelToday?'<div style="font-size:11px;color:'+C.mu2+';margin-top:4px">채팅에서 음식 사진을 올려봐</div>':'')+'</div>'
+    :selFood.map(f=>{
       const atDate=f.at?new Date(f.at):null;
       const timeStr=atDate?(atDate.getHours()+':'+String(atDate.getMinutes()).padStart(2,'0')):'';
-      return '<div class="food-row">'
+      return '<div class="food-row" style="position:relative">'
         +(f.imgDataUrl?'<img class="food-thumb" src="'+esc(f.imgDataUrl)+'" alt="">':'<div class="food-ph"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="'+C.mu+'" stroke-width="1.5" stroke-linecap="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/></svg></div>')
         +'<div style="flex:1;min-width:0">'
         +'<div style="display:flex;align-items:center;justify-content:space-between;gap:6px">'
@@ -791,42 +1419,54 @@ function renderNutritionTab(){
         +'<span class="nut-tag" style="background:'+C.ob+';color:'+C.or+'">탄 '+Math.round(f.carb)+'g</span>'
         +'<span class="nut-tag" style="background:'+C.pb+';color:'+C.pu+'">지 '+Math.round(f.fat)+'g</span>'
         +'</div></div>'
-        +'<div style="text-align:right;flex-shrink:0">'
+        +'<div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">'
         +'<div style="font-size:17px;font-weight:700;color:'+C.or+';font-family:\'DM Mono\',monospace;line-height:1">'+f.kcal+'</div>'
         +'<div style="font-size:9px;color:'+C.mu+'">kcal</div>'
+        +'<button onclick="deleteFoodConfirm(\''+esc(f.id)+'\')" style="width:22px;height:22px;border-radius:6px;border:1px solid var(--rb);background:var(--rb);color:var(--re);font-size:12px;display:flex;align-items:center;justify-content:center;padding:0;line-height:1" title="삭제">✕</button>'
         +'</div></div>';
     }).join('')
-    +(foodToday.length>0?'<div style="display:flex;justify-content:space-between;padding:8px 0 0;margin-top:4px"><span style="font-size:12px;color:'+C.mu+'">합계</span><span style="font-size:13px;font-weight:700;color:'+C.or+';font-family:\'DM Mono\',monospace">'+tKcal+' kcal</span></div>':'');
+    +(selFood.length>0?'<div style="display:flex;justify-content:space-between;padding:8px 0 0;margin-top:4px"><span style="font-size:12px;color:'+C.mu+'">합계</span><span style="font-size:13px;font-weight:700;color:'+C.or+';font-family:\'DM Mono\',monospace">'+selKcal+' kcal</span></div>':'');
 
-  // AI 영양 분석 알림 생성
-  const nutAlert=generateNutAlert(tKcal,tProt,tCarb,tFat);
+  const nutAlert=generateNutAlert(selKcal,selProt,selCarb,selFat,nutSelectedDate);
 
   el.innerHTML=
-  // 월간 캘린더
+  // 캘린더
   '<div class="card">'
-  +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'
-  +'<div class="sec-lbl" style="margin-bottom:0">'+monthLabel+' 식단 현황</div>'
-  +'<div style="display:flex;gap:10px"><span style="font-size:10px;color:'+C.gr+'">● 적정</span><span style="font-size:10px;color:'+C.ye+'">● 초과</span><span style="font-size:10px;color:'+C.re+'">● 과다</span></div>'
+  +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
+  +'<button onclick="nutCalPrev()" style="width:28px;height:28px;border-radius:7px;border:1px solid var(--br);background:transparent;color:var(--mu);display:flex;align-items:center;justify-content:center;font-size:14px">‹</button>'
+  +'<div style="display:flex;flex-direction:column;align-items:center;gap:4px">'
+  +'<span style="font-size:13px;font-weight:600">'+monthLabel+'</span>'
+  +'<div style="display:flex;gap:8px"><span style="font-size:9px;color:'+C.gr+'">● 적정</span><span style="font-size:9px;color:'+C.ye+'">● 초과</span><span style="font-size:9px;color:'+C.re+'">● 과다</span></div>'
+  +'</div>'
+  +'<button onclick="nutCalNext()" style="width:28px;height:28px;border-radius:7px;border:1px solid var(--br);background:transparent;color:var(--mu);display:flex;align-items:center;justify-content:center;font-size:14px">›</button>'
   +'</div>'+calHtml+'</div>'
 
-  // 오늘 칼로리 요약
-  +'<div class="card"><div class="sec-lbl">오늘 칼로리</div>'
+  // 선택된 날 칼로리 요약
+  +'<div id="nut-day-card" class="card"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div class="sec-lbl" style="margin-bottom:0">'+selDateLabel+' 칼로리</div>'
+  +(isSelToday?'':'<span style="font-size:10px;color:var(--mu2)">'+selDateLabel+'</span>')+'</div>'
   +'<div style="display:flex;align-items:center;gap:18px">'
-  +'<div class="ring-wrap">'+ringHTML(kPct,rc,80,8)+'<div class="ring-center"><span style="font-size:17px;font-weight:700;line-height:1">'+tKcal+'</span><span style="font-size:9px;color:'+C.mu+'">kcal</span></div></div>'
+  +'<div class="ring-wrap">'+ringHTML(kPct,rc,80,8)+'<div class="ring-center"><span style="font-size:17px;font-weight:700;line-height:1">'+selKcal+'</span><span style="font-size:9px;color:'+C.mu+'">kcal</span></div></div>'
   +'<div style="flex:1"><div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;margin-bottom:10px">'
   +'<div><div style="font-size:10px;color:'+C.mu+'">목표</div><div style="font-size:13px;font-weight:600;color:'+C.mu2+'">'+GOAL_KCAL()+' kcal</div></div>'
-  +'<div><div style="font-size:10px;color:'+C.mu+'">잔여</div><div style="font-size:13px;font-weight:600;color:'+(GOAL_KCAL()-tKcal<0?C.re:C.gr)+'">'+Math.max(0,GOAL_KCAL()-tKcal)+' kcal</div></div></div>'
+  +'<div><div style="font-size:10px;color:'+C.mu+'">잔여</div><div style="font-size:13px;font-weight:600;color:'+(GOAL_KCAL()-selKcal<0?C.re:C.gr)+'">'+Math.max(0,GOAL_KCAL()-selKcal)+' kcal</div></div></div>'
   +'<div style="height:5px;background:'+C.br+';border-radius:3px;overflow:hidden"><div style="height:100%;width:'+Math.min(kPct,100)+'%;background:'+rc+';border-radius:3px"></div></div>'
   +'<div style="font-size:10px;color:'+C.mu+';margin-top:4px;text-align:right">'+kPct+'%</div></div></div></div>'
 
   // 3대 영양소
-  +'<div class="nut-grid">'+[['단백질',Math.round(tProt),GOAL_PROT(),'g',C.bl,C.bb],['탄수화물',Math.round(tCarb),GOAL_CARB,'g',C.or,C.ob],['지방',Math.round(tFat),GOAL_FAT,'g',C.pu,C.pb]].map(([lbl,val,goal,unit,color])=>
+  +'<div class="nut-grid">'+[['단백질',Math.round(selProt),GOAL_PROT(),'g',C.bl,C.bb],['탄수화물',Math.round(selCarb),GOAL_CARB,'g',C.or,C.ob],['지방',Math.round(selFat),GOAL_FAT,'g',C.pu,C.pb]].map(([lbl,val,goal,unit,color])=>
     '<div class="nut-card"><div class="ring-wrap">'+ringHTML(Math.round((val/goal)*100),color,52,5)+'</div>'
     +'<div style="font-size:16px;font-weight:700">'+val+'<span style="font-size:9px;color:'+C.mu+';font-weight:400">'+unit+'</span></div>'
     +'<div style="font-size:9px;color:'+C.mu+'">'+lbl+'</div><div style="font-size:9px;color:'+color+'">/'+goal+unit+'</div></div>').join('')+'</div>'
 
-  // 오늘 먹은 음식
-  +'<div class="card"><div class="sec-lbl">오늘 먹은 음식</div>'+foodListHtml+'</div>'
+  // 음식 목록
+  +'<div class="card"><div class="sec-lbl">먹은 음식</div>'+foodListHtml+'</div>'
+
+  // AI 영양 분석 알림 (7일 그래프 위)
+  +(nutAlert?'<div class="card" style="border-color:var(--bl);background:var(--bb)">'
+  +'<div style="display:flex;align-items:flex-start;gap:10px">'
+  +'<span style="font-size:18px;flex-shrink:0">💡</span>'
+  +'<div><div style="font-size:11px;font-weight:500;color:var(--bl);margin-bottom:4px;letter-spacing:.05em;text-transform:uppercase">'+selDateLabel+' 영양 분석</div>'
+  +'<div style="font-size:13px;line-height:1.6;color:var(--tx)">'+nutAlert+'</div></div></div></div>':'')
 
   // 7일 칼로리 그래프
   +'<div class="card"><div class="sec-lbl">최근 7일 칼로리</div><div class="bar-row">'+getWeek().map((date,i)=>{
@@ -837,35 +1477,23 @@ function renderNutritionTab(){
   }).join('')+'</div>'
   +'<div style="display:flex;align-items:center;gap:6px;margin-top:8px;justify-content:flex-end">'
   +'<div style="width:16px;border-top:1px dashed '+C.mu+';opacity:.5"></div>'
-  +'<span style="font-size:10px;color:'+C.mu+'">목표 '+GOAL_KCAL()+'kcal</span></div></div>'
-
-  // AI 영양 분석 알림
-  +(nutAlert?'<div class="card" style="border-color:var(--bl);background:var(--bb)">'
-  +'<div style="display:flex;align-items:flex-start;gap:10px">'
-  +'<span style="font-size:18px;flex-shrink:0">💡</span>'
-  +'<div><div style="font-size:11px;font-weight:500;color:var(--bl);margin-bottom:4px;letter-spacing:.05em;text-transform:uppercase">오늘의 영양 분석</div>'
-  +'<div style="font-size:13px;line-height:1.6;color:var(--tx)">'+nutAlert+'</div></div></div></div>':'');
+  +'<span style="font-size:10px;color:'+C.mu+'">목표 '+GOAL_KCAL()+'kcal</span></div></div>';
 }
 
-function generateNutAlert(kcal,prot,carb,fat){
+function generateNutAlert(kcal,prot,carb,fat,dateStr){
   const goalKcal=GOAL_KCAL(),goalProt=GOAL_PROT(),goalCarb=280,goalFat=70;
+  const isToday=dateStr===todayStr();
   const msgs=[];
-  // 단백질 부족
   if(prot<goalProt*0.6) msgs.push('단백질이 목표의 '+Math.round(prot/goalProt*100)+'%야. 닭가슴살, 달걀, 두부를 추가해봐 🥚');
   else if(prot>=goalProt*0.9) msgs.push('단백질 섭취 훌륭해! 근육 회복에 충분한 단백질을 채웠어 💪');
-  // 칼로리 과다
-  if(kcal>goalKcal*1.15) msgs.push('오늘 칼로리가 목표보다 '+Math.round(kcal-goalKcal)+'kcal 초과했어. 저녁은 가볍게 먹어봐 🌙');
-  else if(kcal<goalKcal*0.5&&new Date().getHours()>=18) msgs.push('칼로리가 목표의 절반도 안 됐어. 영양가 있는 식사를 꼭 챙겨봐 🍱');
-  // 운동 기록 기반 (최근 세션 있으면 단백질 더 강조)
-  const recentSession=sessions.find(s=>s.date===todayStr());
-  if(recentSession&&prot<goalProt*0.7) msgs.push('오늘 운동했으니 단백질을 더 챙겨봐. 운동 후 '+Math.round(goalProt-prot)+'g가 더 필요해 💪');
-  // 지방 과다
-  if(fat>goalFat*1.3) msgs.push('지방 섭취가 좀 많아. 튀김류보다 삶거나 구운 음식으로 바꿔봐 🥗');
-  // 탄수화물 과다
-  if(carb>goalCarb*1.3) msgs.push('탄수화물이 목표보다 많아. 다음 끼니는 채소와 단백질 위주로 먹어봐 🥦');
-  // 아무 데이터 없으면
-  if(kcal===0) return '오늘 아직 음식 기록이 없어. 채팅에서 음식 사진을 올리면 자동으로 분석해줄게 📷';
-  return msgs.length>0?msgs[0]:'오늘 영양 균형이 좋아! 이대로 유지해봐 ✨';
+  if(kcal>goalKcal*1.15) msgs.push('칼로리가 목표보다 '+Math.round(kcal-goalKcal)+'kcal 초과했어. '+(isToday?'저녁은 가볍게 먹어봐 🌙':'이 날은 살짝 초과했네 🌙'));
+  else if(kcal<goalKcal*0.5&&(!isToday||new Date().getHours()>=18)) msgs.push('칼로리가 목표의 절반도 안 됐어. '+(isToday?'영양가 있는 식사를 챙겨봐 🍱':'이 날 식사량이 적었네 🍱'));
+  const daySession=sessions.find(s=>s.date===dateStr);
+  if(daySession&&prot<goalProt*0.7) msgs.push('운동한 날인데 단백질이 부족해. '+Math.round(goalProt-prot)+'g가 더 필요했어 💪');
+  if(fat>goalFat*1.3) msgs.push('지방 섭취가 좀 많았어. 튀김류보다 삶거나 구운 음식으로 바꿔봐 🥗');
+  if(carb>goalCarb*1.3) msgs.push('탄수화물이 목표보다 많았어. 채소와 단백질 위주로 균형을 맞춰봐 🥦');
+  if(kcal===0) return isToday?'오늘 아직 음식 기록이 없어. 채팅에서 음식 사진을 올려봐 📷':'이 날 음식 기록이 없어.';
+  return msgs.length>0?msgs[0]:'영양 균형이 좋았어! 이대로 유지해봐 ✨';
 }
 
 // ── 운동 탭 ──────────────────────────────────────────────────
