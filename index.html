@@ -255,6 +255,7 @@ function fbErr(code){
 
 async function doSignOut(){
   if(!confirm('로그아웃할까?'))return;
+  await saveChatLog(); // 로그아웃 전 대화 저장
   await fbSignOut(auth);
   msgs=[];sessions=[];foodToday=[];foodAll=[];prs={};weekVol={};userProfile=null;monthPlan={};
   document.getElementById('msg-list').innerHTML='';
@@ -268,7 +269,14 @@ onAuthStateChanged(auth,async user=>{
     document.getElementById('user-badge').textContent=user.displayName||user.email.split('@')[0];
     showScreen('app');
     await loadAll();
-    if(msgs.length===0) addMsg('assistant','안녕 '+(user.displayName||'')+'! 나는 핏코치야 💪\n\n운동 기록, 루틴 추천, 음식 사진 칼로리 분석까지 다 돼!\n카메라 버튼(📷)을 눌러봐.');
+    // 이전 대화 복원 시도
+    const restored=await loadChatLog();
+    if(!restored){
+      addMsg('assistant','안녕 '+(user.displayName||'')+'! 나는 핏코치야 💪\n\n운동 기록, 루틴 추천, 음식 사진 칼로리 분석까지 다 돼!\n카메라 버튼(📷)을 눌러봐.');
+    } else {
+      // 복원 후 마지막에 재접속 안내
+      addMsg('assistant','다시 돌아왔어! 이전 대화를 복원했어 👋');
+    }
   } else {
     currentUser=null;
     showScreen('screen-login');
@@ -302,6 +310,46 @@ async function saveSession(exs){
     if(!cur.exists()||ex.weight>cur.data().weight){await setDoc(ref,{name:ex.name,weight:ex.weight,reps:ex.reps,date:todayStr()});ex.isPersonalRecord=true;}
   }
   await setDoc(uDoc('sessions',id),sess);
+}
+
+async function saveChatLog(){
+  if(!currentUser||msgs.length===0)return;
+  try{
+    // 최근 3일 메시지만 보관, 이미지 미리보기(imgPrev objectURL)는 저장 제외
+    const cutTs=Date.now()-3*24*60*60*1000;
+    const toSave=msgs.slice(-200).map(m=>({
+      role:m.role,
+      content:m.content||'',
+      // imgPrev는 blob URL이라 저장 불가 — 텍스트로 대체
+      hasImg:!!m.imgPrev
+    }));
+    await setDoc(uDoc('chatlog','recent'),{msgs:JSON.stringify(toSave),savedAt:new Date().toISOString()});
+  }catch(e){console.warn('채팅 저장 실패:',e);}
+}
+
+async function loadChatLog(){
+  if(!currentUser)return false;
+  try{
+    const d=await getDoc(uDoc('chatlog','recent'));
+    if(!d.exists())return false;
+    const saved=JSON.parse(d.data().msgs||'[]');
+    if(saved.length===0)return false;
+    // 복원 — 이미지는 텍스트로만 복원
+    msgs=saved.map(m=>({role:m.role,content:m.content,imgPrev:null}));
+    const list=document.getElementById('msg-list');
+    list.innerHTML='';
+    msgs.forEach(m=>{
+      const row=document.createElement('div');
+      row.className='msg-row'+(m.role==='user'?' user':'');
+      const disp=m.role==='assistant'?cleanReply(m.content):m.content;
+      let html='';
+      if(m.role==='assistant') html+='<div class="avatar"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0c0e14" stroke-width="2.5" stroke-linecap="round"><path d="M6 4v16M18 4v16M3 8h18M3 16h18"/></svg></div>';
+      html+='<div class="bubble'+(m.role==='user'?' user':'')+'">'+esc(disp).replace(/\n/g,'<br>').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')+'</div>';
+      row.innerHTML=html;list.appendChild(row);
+    });
+    list.scrollTop=list.scrollHeight;
+    return true;
+  }catch(e){console.warn('채팅 복원 실패:',e);return false;}
 }
 
 async function saveFoodLog(fd,imgDataUrl){
@@ -379,20 +427,27 @@ async function parseAndSaveRoutineFromChat(text,dateStr){
   }
   if(items.length>0){
     if(!monthPlan[dateStr])monthPlan[dateStr]={muscle:'',routines:[],done:false,totalTime:null};
+    // 기존 루틴 교체 — done/totalTime은 유지하지 않고 초기화 (새 루틴이므로)
     monthPlan[dateStr].routines=items;
+    monthPlan[dateStr].done=false;
+    monthPlan[dateStr].totalTime=null;
     await saveMonthPlan();
-    // 운동 탭이 열려있으면 UI 갱신
+    // 운동 탭 UI 즉시 갱신
     const wTab=document.getElementById('workout-tab');
     if(wTab&&wTab.style.display!=='none'){
-      // 패널만 갱신 (날짜 클릭된 상태면)
-      const panel=document.getElementById('day-detail');
-      if(panel&&activeDayKey===dateStr) renderDayPanel(dateStr);
-      // 달력 행 업데이트
+      // 달력 행 상태 업데이트
       const row=document.getElementById('day-row-'+dateStr);
       if(row){
-        const plan=monthPlan[dateStr];
         const lb=row.querySelector('.muscle-label');
-        if(lb&&plan.muscle){lb.textContent=plan.muscle;}
+        if(lb&&monthPlan[dateStr].muscle) lb.textContent=monthPlan[dateStr].muscle;
+        // 완료/진행중 뱃지 제거 (루틴 교체됐으므로)
+        const badge=row.querySelector('.done-badge');if(badge)badge.remove();
+      }
+      // 패널이 해당 날짜로 열려있으면 즉시 갱신
+      if(activeDayKey===dateStr){
+        activeExIdx=null;doneSet=0;
+        clearInterval(setTimer);setTimer=null;
+        renderDayPanel(dateStr);
       }
     }
     return true;
@@ -572,6 +627,8 @@ async function send(){
   }
   setBusy(false);
   setTimeout(()=>document.getElementById('msg-input').focus(),100);
+  // 대화 내용 자동 저장 (백그라운드)
+  saveChatLog().catch(()=>{});
 }
 window.send=send;
 
@@ -710,10 +767,17 @@ async function renderWorkoutTab(){
       const isDone=plan.done||false;
       const totalTime=plan.totalTime||null;
       const isToday=dateStr===todayStr();
+      // 진행중: 루틴이 있고, 일부는 완료됐지만 전체 완료는 아닌 경우
+      const routines=plan.routines||[];
+      const hasStarted=routines.length>0&&routines.some(r=>r.doneTime!=null)&&!isDone;
+      const doneCount=routines.filter(r=>r.doneTime!=null).length;
+      const partialTime=routines.reduce((s,r)=>s+(r.doneTime||0),0);
       html+='<div id="day-row-'+dateStr+'" onclick="openDayDetail(\''+dateStr+'\')" style="display:flex;align-items:center;padding:10px 12px;margin-bottom:6px;background:'+(isToday?'var(--s3)':'var(--sf)')+';border:1px solid '+(isToday?'var(--b2)':'var(--br)')+';border-radius:12px;cursor:pointer;gap:10px">'
         +'<div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:8px"><span style="font-size:13px;font-weight:'+(isToday?'600':'400')+';color:'+(isToday?'var(--tx)':'var(--mu2)')+'">'+mm+'월 '+dd+'일 '+dayName+'</span>'+(isToday?'<span style="font-size:9px;background:var(--gb);color:var(--gr);padding:1px 6px;border-radius:20px;font-weight:600">오늘</span>':'')+'</div>'
         +'<div class="muscle-label" style="font-size:12px;color:'+(muscle==='휴식'?'var(--mu)':muscle?'var(--bl)':'var(--mu)')+';margin-top:3px">'+(muscle||'미정')+'</div></div>'
-        +'<div style="display:flex;align-items:center;gap:8px;flex-shrink:0">'+(isDone?'<span style="font-size:11px;color:var(--gr);font-weight:500">완료 '+(totalTime?fmtSec(totalTime):'')+'</span>':'')
+        +'<div style="display:flex;align-items:center;gap:8px;flex-shrink:0">'
+        +(isDone?'<span style="font-size:11px;color:var(--gr);font-weight:500">완료 '+(totalTime?fmtSec(totalTime):'')+'</span>'
+          :hasStarted?'<span style="font-size:11px;color:var(--ye);font-weight:500">진행중 '+doneCount+'/'+routines.length+' '+(partialTime?fmtSec(partialTime):'')+'</span>':'')
         +'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--mu)" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></div></div>';
     });
     html+='</div>';
