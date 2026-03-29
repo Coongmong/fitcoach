@@ -659,10 +659,7 @@ async function send(){
 }
 window.send=send;
 
-// ── 운동 자세 이미지 DB (free-exercise-db 공개 도메인) ────────
-const IMG_BASE='https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/';
-
-// 운동별 자세 포인트 (EXERCISE_IMG_DB보다 먼저 선언)
+// ── 운동 자세 카드 ───────────────────────────────────────────
 const EXERCISE_TIPS={
   '스쿼트':{ok:['발을 어깨 너비로 벌리고 발끝은 15~30° 외회전','무릎은 발끝 방향과 일치','가슴은 세우고 시선은 정면','대퇴부가 바닥과 평행할 때까지 내려가기','복압 유지하며 밀어올리기'],bad:['무릎이 안쪽으로 무너짐 (니 케이브)','허리가 과도하게 굽거나 젖힘','발뒤꿈치가 들림','무게중심이 앞으로 쏠림']},
   '벤치프레스':{ok:['등 아치 만들기 (어깨뼈 모으고 등 살짝 뜨기)','바는 가슴 중간~아래쪽으로 내리기','발을 바닥에 단단히 고정','팔꿈치 각도 약 75° 유지','바벨을 어깨너비보다 약간 넓게 잡기'],bad:['엉덩이가 벤치에서 뜸','바가 목 쪽으로 내려감','팔꿈치를 완전히 잠금','반동으로 밀어올림']},
@@ -674,89 +671,27 @@ const DEFAULT_TIPS={
   ok:['시선 정면 유지','척추 중립 자세 유지','호흡: 힘 쓸 때 내쉬고, 돌아올 때 들이쉬기','관절 완전 잠금 방지 (약 5° 여유)','코어 복압 유지하며 동작 내내 긴장'],
   bad:['허리 과도한 굽힘·젖힘','관절에 충격이 가는 반동 이용','호흡 멈추기','무게중심이 한쪽으로 쏠림']
 };
-const EXERCISE_EN={'스쿼트':'squat barbell','벤치프레스':'bench press barbell','데드리프트':'deadlift barbell','오버헤드프레스':'overhead press barbell','풀업':'pull up','플랭크':'plank','런지':'lunge barbell','레그프레스':'leg press','바벨로우':'barbell row bent over','랫풀다운':'lat pulldown wide grip','사이드레터럴레이즈':'lateral raise dumbbell','덤벨컬':'bicep curl dumbbell','크런치':'crunch abs'};
-
-// 운동명 → {폴더, tips}
-const EXERCISE_IMG_DB={
-  // ── 하체 ──
-  '스쿼트':{f:'Barbell_Full_Squat',tips:EXERCISE_TIPS['스쿼트']},
-  '바벨스쿼트':{f:'Barbell_Full_Squat',tips:EXERCISE_TIPS['스쿼트']},
-  '프론트스쿼트':{f:'Barbell_Full_Squat',tips:EXERCISE_TIPS['스쿼트']},
-  '런지':{f:'Barbell_Lunge',tips:{ok:['상체 곧게 유지','앞 무릎 90° 구부리기','뒷 무릎 바닥 가까이','코어 긴장 유지'],bad:['무릎이 발끝 앞으로','상체가 앞으로 기울어짐','보폭이 너무 좁음']}},
-  '레그프레스':{f:'Leg_Press',tips:{ok:['발을 플랫폼 중앙에','무릎 90° 기준','등을 패드에 밀착','발뒤꿈치로 밀기'],bad:['무릎이 안쪽으로','엉덩이가 패드에서 뜸','너무 깊이 내려감']}},
-  '레그컬':{f:'Lying_Leg_Curls',tips:{ok:['엉덩이를 패드에 밀착','발목을 당기며 수축','천천히 내리기','코어 긴장'],bad:['엉덩이가 들림','반동 사용','너무 빠른 동작']}},
-  '레그익스텐션':{f:'Leg_Extensions',tips:{ok:['등을 패드에 밀착','발등으로 밀어올리기','꼭대기에서 잠깐 수축','천천히 내리기'],bad:['너무 빠른 속도','발목을 구부림','허리가 아치됨']}},
-  '힙스러스트':{f:'Barbell_Hip_Thrust',tips:{ok:['어깨를 벤치에','바는 골반 위에','엉덩이를 최대로 수축','발바닥 전체로 밀기'],bad:['허리로 올리기','무릎이 벌어짐','골반이 기울어짐']}},
-  '카프레이즈':{f:'Standing_Calf_Raises',tips:{ok:['발끝으로 최대한 올라가기','꼭대기에서 1초 유지','천천히 내리기','무릎 약간 굽히기'],bad:['반동 사용','너무 빠른 동작','발가락으로만 하기']}},
-  // ── 가슴 ──
-  '벤치프레스':{f:'Barbell_Bench_Press_-_Medium_Grip',tips:EXERCISE_TIPS['벤치프레스']},
-  '덤벨벤치프레스':{f:'Dumbbell_Bench_Press',tips:EXERCISE_TIPS['벤치프레스']},
-  '인클라인프레스':{f:'Barbell_Incline_Bench_Press_-_Medium_Grip',tips:{ok:['등 아치 유지','바를 윗가슴에 내리기','팔꿈치 각도 75°','발 바닥에 고정'],bad:['팔꿈치가 너무 벌어짐','바가 목 쪽으로','엉덩이가 뜸']}},
-  '체스트플라이':{f:'Dumbbell_Flyes',tips:{ok:['팔꿈치를 약간 구부린 채 유지','가슴 수축에 집중','천천히 넓게 펼치기','가슴 스트레칭 느끼기'],bad:['팔꿈치를 완전히 핌','너무 넓게 펼침','반동 사용']}},
-  '딥스':{f:'Chest_Dip',tips:{ok:['상체를 앞으로 약간 기울이기','팔꿈치를 바깥쪽으로','가슴이 당겨지는 느낌','천천히 내리기'],bad:['상체 직립 (삼두 위주)','팔꿈치가 안쪽으로','너무 깊이 내려감']}},
-  '케이블플라이':{f:'Cable_Crossover',tips:{ok:['가슴 수축에 집중','팔꿈치를 약간 구부림','핸들을 모을 때 가슴 조이기','천천히 되돌리기'],bad:['팔꿈치를 완전히 핌','상체가 앞뒤로 흔들림','반동 사용']}},
-  '푸시업':{f:'Push-Up',tips:{ok:['몸을 일직선으로','팔꿈치를 약 45°로','가슴이 바닥에 거의 닿게','코어 긴장 유지'],bad:['엉덩이가 올라가거나 처짐','팔꿈치가 완전히 벌어짐','머리를 앞으로 내밈']}},
-  // ── 등 ──
-  '데드리프트':{f:'Barbell_Deadlift',tips:EXERCISE_TIPS['데드리프트']},
-  '바벨로우':{f:'Bent_Over_Barbell_Row',tips:{ok:['상체 45° 기울이기','바를 배꼽 방향으로','팔꿈치를 뒤로 당기기','등 근육으로 수축'],bad:['허리가 굽음','반동으로 당기기','너무 직립 자세','팔꿈치가 벌어짐']}},
-  '랫풀다운':{f:'Wide-Grip_Lat_Pulldown',tips:{ok:['어깨너비보다 넓게 잡기','가슴을 펴고 약간 뒤로','바를 쇄골 위까지','등 광배근으로 당기기'],bad:['너무 뒤로 젖힘','팔 힘으로만 당기기','바를 목 뒤로']}},
-  '시티드로우':{f:'Seated_Cable_Rows',tips:{ok:['등을 곧게 세우기','팔꿈치를 뒤로','배꼽 방향으로 당기기','천천히 되돌리기'],bad:['상체가 앞뒤로 크게 흔들림','허리가 굽음','너무 빠른 동작']}},
-  '풀업':{f:'Close-Grip_Front_Lat_Pulldown',tips:EXERCISE_TIPS['풀업']},
-  '친업':{f:'Close-Grip_Front_Lat_Pulldown',tips:EXERCISE_TIPS['풀업']},
-  '원암덤벨로우':{f:'One-Arm_Dumbbell_Row',tips:{ok:['등을 벤치에 지지','팔꿈치를 위로','등 광배근으로 당기기','어깨를 내리고 수축'],bad:['허리가 회전','어깨가 따라 올라감','팔로만 당기기']}},
-  // ── 어깨 ──
-  '오버헤드프레스':{f:'Barbell_Shoulder_Press',tips:EXERCISE_TIPS['오버헤드프레스']},
-  '숄더프레스':{f:'Barbell_Shoulder_Press',tips:EXERCISE_TIPS['오버헤드프레스']},
-  '사이드레터럴레이즈':{f:'Side_Lateral_Raise',tips:{ok:['팔꿈치를 약간 구부림','새끼손가락 쪽으로 올리기','어깨 높이까지만','천천히 내리기'],bad:['너무 높이 올리기','반동 사용','등이 굽음']}},
-  '프론트레이즈':{f:'Dumbbell_Front_Raise',tips:{ok:['팔을 어깨 높이까지','천천히 내리기','코어 긴장 유지','팔꿈치 약간 구부림'],bad:['너무 높이 올리기','반동 사용','상체가 흔들림']}},
-  '페이스풀':{f:'Face_Pull',tips:{ok:['팔꿈치를 높이 들기','줄을 얼굴 쪽으로','어깨 외회전','천천히 되돌리기'],bad:['팔꿈치가 내려감','목 쪽으로 당기기','너무 무거운 중량']}},
-  // ── 팔 ──
-  '바벨컬':{f:'Barbell_Curl',tips:{ok:['팔꿈치를 옆구리에 고정','완전 가동 범위','꼭대기에서 이두 수축','천천히 내리기'],bad:['팔꿈치가 앞뒤로 흔들림','허리로 반동','너무 빠른 동작']}},
-  '덤벨컬':{f:'Dumbbell_Alternate_Bicep_Curl',tips:{ok:['한 팔씩 번갈아','이두 완전 수축','천천히 내리기','팔꿈치 고정'],bad:['팔꿈치가 앞으로 나옴','반동 사용','너무 빠른 동작']}},
-  '해머컬':{f:'Hammer_Curls',tips:{ok:['엄지가 위를 향하게','팔꿈치 고정','완전 가동 범위','이두 수축 느끼기'],bad:['팔꿈치가 움직임','반동 사용','너무 빠름']}},
-  '트라이셉스푸시다운':{f:'Triceps_Pushdown',tips:{ok:['팔꿈치를 옆구리에 고정','바를 완전히 내리기','삼두 수축 느끼기','천천히 올리기'],bad:['팔꿈치가 앞으로','상체가 앞으로 기울어짐','반동 사용']}},
-  '오버헤드트라이셉스익스텐션':{f:'Overhead_Triceps_Extension',tips:{ok:['팔꿈치를 귀 옆에','완전히 올리기','삼두 수축','천천히 내리기'],bad:['팔꿈치가 벌어짐','허리가 과도하게 젖힘','너무 빠른 동작']}},
-  // ── 코어 ──
-  '플랭크':{f:'Pushup',tips:{ok:['머리부터 발까지 일직선','팔꿈치는 어깨 바로 아래','코어 강하게 긴장','호흡 유지'],bad:['엉덩이가 올라가거나 처짐','머리를 너무 들거나 내림','팔꿈치가 너무 벌어짐']}},
-  '크런치':{f:'Crunch',tips:{ok:['발을 바닥에 고정','복부로 상체 들어올리기','목을 당기지 않기','천천히 내리기'],bad:['목으로 올라오기','반동 사용','허리를 완전히 바닥에서 들기']}},
-  '레그레이즈':{f:'Flat_Bench_Lying_Leg_Raise',tips:{ok:['등을 바닥에 밀착','복부로 다리 올리기','천천히 내리기','허리 뜨지 않게'],bad:['허리가 바닥에서 뜸','반동 사용','너무 빠름']}},
-  // ── 전신 ──
-  '데드리프트스쿼트':{f:'Barbell_Full_Squat',tips:EXERCISE_TIPS['스쿼트']},
-};
-
-function extractExerciseName(text){
-  const poseWords=['자세','방법','하는 법','어떻게','폼','알려줘','알려줄','설명','운동법'];
-  const hasPose=poseWords.some(w=>text.includes(w));
-  if(!hasPose) return null;
-  const exMatch=text.match(/([가-힣a-zA-Z]+(?:[\s\-][가-힣a-zA-Z]+)?)\s*(?:자세|방법|폼|하는\s*법|알려|어떻게|운동\s*방법|운동법)/);
-  if(!exMatch) return null;
-  const name=exMatch[1].trim();
-  if(name.length<2||['운동','오늘','어떤','어느','이','그','저'].includes(name)) return null;
-  return name;
-}
-
-// exercises.json 캐시 (앱 세션 동안 한 번만 로드)
-let exerciseDB=null;
-let exerciseDBLoading=false;
-const EXDB_URL='https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/dist/exercises.json';
 const IMG_CDN='https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/';
-
+const EXDB_URL='https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/dist/exercises.json';
+let exerciseDB=null,exerciseDBLoading=false;
 async function loadExerciseDB(){
   if(exerciseDB) return exerciseDB;
   if(exerciseDBLoading) return null;
   exerciseDBLoading=true;
-  try{
-    const res=await fetch(EXDB_URL);
-    if(!res.ok) throw new Error('DB 로드 실패');
-    exerciseDB=await res.json();
-    return exerciseDB;
-  }catch(e){
-    console.warn('ExerciseDB 로드 오류:',e);
-    return null;
-  }
+  try{const r=await fetch(EXDB_URL);exerciseDB=await r.json();return exerciseDB;}
+  catch(e){console.warn('ExerciseDB:',e);return null;}
 }
 
-// 한글 운동명 → free-exercise-db 정확한 폴더명 (직접 매핑)
+function extractExerciseName(text){
+  const poseWords=['자세','방법','하는 법','어떻게','폼','알려줘','알려줄','설명','운동법'];
+  if(!poseWords.some(w=>text.includes(w))) return null;
+  const m=text.match(/([가-힣a-zA-Z]+(?:[\s\-][가-힣a-zA-Z]+)?)\s*(?:자세|방법|폼|하는\s*법|알려|어떻게|운동\s*방법|운동법)/);
+  if(!m) return null;
+  const name=m[1].trim();
+  if(name.length<2||['운동','오늘','어떤','어느','이','그','저'].includes(name)) return null;
+  return name;
+}
+
 const KO_TO_FOLDER={
   // ── 하체 ──
   '스쿼트':'Barbell_Full_Squat','바벨스쿼트':'Barbell_Full_Squat',
@@ -847,19 +782,6 @@ function getYtQuery(korName){
     if(korName.includes(k)||k.includes(korName)) return v;
   }
   return korName+' exercise proper form tutorial';
-}
-
-// exercises.json — 폴더명 매핑 실패 시 폴백
-let exerciseDB=null,exerciseDBLoading=false;
-const EXDB_URL='https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/dist/exercises.json';
-const IMG_CDN='https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/';
-
-async function loadExerciseDB(){
-  if(exerciseDB) return exerciseDB;
-  if(exerciseDBLoading) return null;
-  exerciseDBLoading=true;
-  try{const res=await fetch(EXDB_URL);exerciseDB=await res.json();return exerciseDB;}
-  catch(e){console.warn('ExerciseDB:',e);return null;}
 }
 
 function searchExercise(db,query){
