@@ -142,7 +142,7 @@ button{font-family:'DM Sans','Noto Sans KR',sans-serif;cursor:pointer}
     <div style="display:flex;align-items:center;gap:8px">
       <div class="logo-mark"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0c0e14" stroke-width="2.5" stroke-linecap="round"><path d="M6 4v16M18 4v16M3 8h18M3 16h18"/></svg></div>
       <span class="app-name">핏코치</span>
-      <span class="user-badge" id="user-badge">로딩중</span>
+      <span class="user-badge" id="user-badge" onclick="showDataMenu()" style="cursor:pointer" title="데이터 관리">로딩중</span>
     </div>
     <div style="display:flex;align-items:center;gap:6px">
       <div class="tab-bar">
@@ -258,13 +258,114 @@ function fbErr(code){
 
 async function doSignOut(){
   if(!confirm('로그아웃할까?'))return;
-  await saveChatLog(); // 로그아웃 전 대화 저장
+  await saveChatLog();
   await fbSignOut(auth);
   msgs=[];sessions=[];foodToday=[];foodAll=[];prs={};weekVol={};userProfile=null;monthPlan={};
   document.getElementById('msg-list').innerHTML='';
   showScreen('screen-login');
 }
 window.doSignOut=doSignOut;
+
+// ── 데이터 관리 팝업 ──────────────────────────────────────────
+function showDataMenu(){
+  if(!currentUser) return;
+  const name=document.getElementById('user-badge').textContent;
+  let overlay=document.getElementById('fc-data-menu');
+  if(!overlay){
+    overlay=document.createElement('div');
+    overlay.id='fc-data-menu';
+    overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:9999;padding:24px';
+    document.body.appendChild(overlay);
+  }
+  overlay.innerHTML=`
+  <div style="background:var(--sf);border:1px solid var(--br);border-radius:20px;padding:20px;max-width:320px;width:100%">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+      <div style="width:36px;height:36px;border-radius:50%;background:var(--gb);display:flex;align-items:center;justify-content:center;font-size:16px">👤</div>
+      <div>
+        <div style="font-size:14px;font-weight:600;color:var(--tx)">${esc(name)}</div>
+        <div style="font-size:11px;color:var(--mu)">${esc(currentUser.email||'')}</div>
+      </div>
+    </div>
+    <div style="border-top:1px solid var(--br);padding-top:14px;display:flex;flex-direction:column;gap:10px">
+      <button onclick="confirmDeleteData('chat')" style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--s2);border:1px solid var(--br);border-radius:12px;color:var(--tx);font-size:13px;font-family:inherit;text-align:left;cursor:pointer">
+        <span style="font-size:18px">💬</span>
+        <div><div style="font-weight:500">대화 기록만 삭제</div><div style="font-size:11px;color:var(--mu);margin-top:2px">채팅 대화 내용만 지워져. 운동·영양 데이터는 유지돼.</div></div>
+      </button>
+      <button onclick="confirmDeleteData('all')" style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--rb);border:1px solid #7f1d1d;border-radius:12px;color:var(--tx);font-size:13px;font-family:inherit;text-align:left;cursor:pointer">
+        <span style="font-size:18px">🗑️</span>
+        <div><div style="font-weight:500;color:var(--re)">전체 데이터 삭제</div><div style="font-size:11px;color:#fca5a5;margin-top:2px">대화·영양·운동루틴·인바디 모든 기록이 삭제돼. 되돌릴 수 없어.</div></div>
+      </button>
+    </div>
+    <button onclick="document.getElementById('fc-data-menu').style.display='none'" style="margin-top:14px;width:100%;padding:10px;border-radius:10px;border:1px solid var(--br);background:transparent;color:var(--mu);font-size:13px;font-family:inherit;cursor:pointer">닫기</button>
+  </div>`;
+  overlay.style.display='flex';
+  overlay.onclick=(e)=>{if(e.target===overlay)overlay.style.display='none';};
+}
+window.showDataMenu=showDataMenu;
+
+function confirmDeleteData(type){
+  document.getElementById('fc-data-menu').style.display='none';
+  const isChatOnly=type==='chat';
+  const msg=isChatOnly
+    ?'대화 기록을 삭제할까?\n\n운동·영양·인바디 데이터는 유지돼.'
+    :'⚠️ 모든 데이터를 삭제할까?\n\n대화·영양·운동루틴·인바디 기록이 전부 삭제돼. 이 작업은 되돌릴 수 없어.';
+  showConfirm(msg, ()=>deleteData(type), {
+    okText: isChatOnly?'대화 삭제':'전체 삭제',
+    okColor: 'var(--re)'
+  });
+}
+window.confirmDeleteData=confirmDeleteData;
+
+async function deleteData(type){
+  if(!currentUser) return;
+  const uid=currentUser.uid;
+
+  // 삭제할 컬렉션 목록
+  const targets=type==='chat'
+    ?['chatlog']
+    :['chatlog','foods','sessions','prs','inbody'];
+
+  // 월간 플랜도 전체 삭제 시 포함
+  const deletePlan=type==='all';
+
+  // 로딩 표시
+  const badge=document.getElementById('user-badge');
+  const origText=badge.textContent;
+  badge.textContent='삭제 중...';
+  badge.style.pointerEvents='none';
+
+  try{
+    for(const colName of targets){
+      const snap=await getDocs(collection(fdb,'users',uid,colName));
+      const dels=snap.docs.map(d=>deleteDoc(d.ref));
+      await Promise.all(dels);
+    }
+    // 플랜 삭제 (plans/ 하위 모든 문서)
+    if(deletePlan){
+      const planSnap=await getDocs(collection(fdb,'users',uid,'plans'));
+      await Promise.all(planSnap.docs.map(d=>deleteDoc(d.ref)));
+    }
+
+    // 메모리 초기화
+    if(type==='chat'){
+      msgs=[];
+      document.getElementById('msg-list').innerHTML='';
+      addMsg('assistant','대화 기록을 삭제했어. 새롭게 시작해보자 💪');
+    } else {
+      msgs=[];sessions=[];foodToday=[];foodAll=[];prs={};weekVol={};monthPlan={};
+      document.getElementById('msg-list').innerHTML='';
+      addMsg('assistant','모든 데이터를 삭제했어. 다시 처음부터 시작해보자 💪');
+      renderNutritionTab();
+      renderWorkoutTab();
+    }
+  }catch(e){
+    alert('삭제 중 오류가 발생했어: '+e.message);
+  }finally{
+    badge.textContent=origText;
+    badge.style.pointerEvents='';
+  }
+}
+window.deleteData=deleteData;
 
 onAuthStateChanged(auth,async user=>{
   if(user){
