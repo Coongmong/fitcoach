@@ -8,8 +8,12 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'DM Sans','Noto Sans KR',sans-serif;background:#0c0e14;color:#e8eaf2;min-height:100dvh;display:flex;align-items:center;justify-content:center;font-size:16px;-webkit-tap-highlight-color:transparent}
-:root{--bg:#0c0e14;--sf:#141720;--s2:#1c2030;--s3:#232740;--br:#252836;--b2:#2e3350;--tx:#e8eaf2;--mu:#5a6080;--mu2:#8892b0;--gr:#22c55e;--gd:#166534;--gb:#0d2018;--or:#f97316;--ob:#1c1008;--bl:#60a5fa;--bb:#0d1a30;--pu:#a78bfa;--pb:#150f2a;--re:#f87171;--rb:#1c0d0d;--ye:#fbbf24}
+:root{
+  --app-h: 100dvh;
+  --app-w: calc(100dvh * 0.75);
+  --bg:#0c0e14;--sf:#141720;--s2:#1c2030;--s3:#232740;--br:#252836;--b2:#2e3350;--tx:#e8eaf2;--mu:#5a6080;--mu2:#8892b0;--gr:#22c55e;--gd:#166534;--gb:#0d2018;--or:#f97316;--ob:#1c1008;--bl:#60a5fa;--bb:#0d1a30;--pu:#a78bfa;--pb:#150f2a;--re:#f87171;--rb:#1c0d0d;--ye:#fbbf24
+}
+body{font-family:'DM Sans','Noto Sans KR',sans-serif;background:#0c0e14;color:#e8eaf2;height:100dvh;display:flex;align-items:center;justify-content:center;font-size:16px;-webkit-tap-highlight-color:transparent;overflow:hidden}
 ::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:var(--br);border-radius:2px}
 textarea::placeholder,input::placeholder{color:#2e3350}
 button{font-family:'DM Sans','Noto Sans KR',sans-serif;cursor:pointer}
@@ -17,7 +21,7 @@ button{font-family:'DM Sans','Noto Sans KR',sans-serif;cursor:pointer}
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 @keyframes spin{to{transform:rotate(360deg)}}
 .fade-in{animation:fadeIn .25s ease forwards}
-.auth-screen{display:none;flex-direction:column;align-items:center;justify-content:center;width:390px;height:520px;padding:24px;background:var(--bg);border-radius:20px;overflow:hidden}
+.auth-screen{display:none;flex-direction:column;align-items:center;justify-content:center;width:var(--app-w);height:var(--app-h);padding:24px;background:var(--bg);overflow:hidden}
 .auth-screen.active{display:flex}
 .auth-logo{width:52px;height:52px;background:var(--gr);border-radius:16px;display:flex;align-items:center;justify-content:center;margin-bottom:18px}
 .auth-title{font-size:24px;font-weight:600;letter-spacing:-.02em;margin-bottom:6px;text-align:center}
@@ -37,7 +41,7 @@ button{font-family:'DM Sans','Noto Sans KR',sans-serif;cursor:pointer}
 .auth-hint a{color:var(--bl);text-decoration:none}
 .auth-div{height:1px;background:var(--br)}
 .sp{width:16px;height:16px;border:2px solid rgba(0,0,0,.2);border-top-color:#0c0e14;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px}
-#app{display:none;flex-direction:column;width:390px;height:520px;border-radius:20px;overflow:hidden;position:relative;border:1px solid var(--br)}
+#app{display:none;flex-direction:column;width:var(--app-w);height:var(--app-h);overflow:hidden;position:relative}
 .header{height:52px;padding:0 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--br);flex-shrink:0;background:var(--bg)}
 .logo-mark{width:32px;height:32px;background:var(--gr);border-radius:9px;display:flex;align-items:center;justify-content:center}
 .app-name{font-weight:600;font-size:17px;letter-spacing:-.01em}
