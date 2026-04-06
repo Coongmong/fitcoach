@@ -8,7 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'DM Sans','Noto Sans KR',sans-serif;background:#0c0e14;color:#e8eaf2;min-height:100dvh;display:flex;flex-direction:column;font-size:14px;-webkit-tap-highlight-color:transparent}
+body{font-family:'DM Sans','Noto Sans KR',sans-serif;background:#0c0e14;color:#e8eaf2;min-height:100dvh;display:flex;align-items:center;justify-content:center;font-size:16px;-webkit-tap-highlight-color:transparent}
 :root{--bg:#0c0e14;--sf:#141720;--s2:#1c2030;--s3:#232740;--br:#252836;--b2:#2e3350;--tx:#e8eaf2;--mu:#5a6080;--mu2:#8892b0;--gr:#22c55e;--gd:#166534;--gb:#0d2018;--or:#f97316;--ob:#1c1008;--bl:#60a5fa;--bb:#0d1a30;--pu:#a78bfa;--pb:#150f2a;--re:#f87171;--rb:#1c0d0d;--ye:#fbbf24}
 ::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:var(--br);border-radius:2px}
 textarea::placeholder,input::placeholder{color:#2e3350}
@@ -17,17 +17,17 @@ button{font-family:'DM Sans','Noto Sans KR',sans-serif;cursor:pointer}
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 @keyframes spin{to{transform:rotate(360deg)}}
 .fade-in{animation:fadeIn .25s ease forwards}
-.auth-screen{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:100dvh;padding:24px}
+.auth-screen{display:none;flex-direction:column;align-items:center;justify-content:center;width:390px;height:520px;padding:24px;background:var(--bg);border-radius:20px;overflow:hidden}
 .auth-screen.active{display:flex}
 .auth-logo{width:52px;height:52px;background:var(--gr);border-radius:16px;display:flex;align-items:center;justify-content:center;margin-bottom:18px}
-.auth-title{font-size:22px;font-weight:600;letter-spacing:-.02em;margin-bottom:6px;text-align:center}
-.auth-sub{font-size:13px;color:var(--mu2);text-align:center;line-height:1.6;margin-bottom:24px;max-width:280px}
+.auth-title{font-size:24px;font-weight:600;letter-spacing:-.02em;margin-bottom:6px;text-align:center}
+.auth-sub{font-size:14px;color:var(--mu2);text-align:center;line-height:1.6;margin-bottom:24px;max-width:280px}
 .auth-box{width:100%;max-width:340px;background:var(--sf);border:1px solid var(--br);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:14px}
 .auth-field{display:flex;flex-direction:column;gap:6px}
 .auth-label{font-size:11px;font-weight:500;color:var(--mu);letter-spacing:.06em;text-transform:uppercase}
-.auth-input{background:var(--s2);border:1px solid var(--br);border-radius:10px;padding:10px 12px;color:var(--tx);font-size:13px;font-family:inherit;outline:none;transition:border-color .15s;width:100%}
+.auth-input{background:var(--s2);border:1px solid var(--br);border-radius:10px;padding:10px 12px;color:var(--tx);font-size:14px;font-family:inherit;outline:none;transition:border-color .15s;width:100%}
 .auth-input:focus{border-color:var(--gr)}
-.auth-btn{padding:11px;background:var(--gr);border:none;border-radius:10px;color:#0c0e14;font-size:14px;font-weight:600;transition:all .15s;width:100%}
+.auth-btn{padding:11px;background:var(--gr);border:none;border-radius:10px;color:#0c0e14;font-size:15px;font-weight:600;transition:all .15s;width:100%}
 .auth-btn:disabled{opacity:.35;cursor:not-allowed}
 .auth-btn:not(:disabled):hover{opacity:.88}
 .auth-btn.sec{background:transparent;border:1px solid var(--br);color:var(--mu2);font-weight:400;font-size:13px}
@@ -37,13 +37,13 @@ button{font-family:'DM Sans','Noto Sans KR',sans-serif;cursor:pointer}
 .auth-hint a{color:var(--bl);text-decoration:none}
 .auth-div{height:1px;background:var(--br)}
 .sp{width:16px;height:16px;border:2px solid rgba(0,0,0,.2);border-top-color:#0c0e14;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px}
-#app{display:none;flex-direction:column;height:100dvh;max-width:480px;margin:0 auto;width:100%}
+#app{display:none;flex-direction:column;width:390px;height:520px;border-radius:20px;overflow:hidden;position:relative;border:1px solid var(--br)}
 .header{height:52px;padding:0 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--br);flex-shrink:0;background:var(--bg)}
-.logo-mark{width:30px;height:30px;background:var(--gr);border-radius:9px;display:flex;align-items:center;justify-content:center}
-.app-name{font-weight:600;font-size:15px;letter-spacing:-.01em}
-.user-badge{font-size:10px;background:var(--gb);color:var(--gr);padding:2px 8px;border-radius:20px;font-weight:500;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.logo-mark{width:32px;height:32px;background:var(--gr);border-radius:9px;display:flex;align-items:center;justify-content:center}
+.app-name{font-weight:600;font-size:17px;letter-spacing:-.01em}
+.user-badge{font-size:11px;background:var(--gb);color:var(--gr);padding:2px 8px;border-radius:20px;font-weight:500;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tab-bar{display:flex;gap:2px;background:var(--sf);padding:3px;border-radius:10px;border:1px solid var(--br)}
-.tab-btn{padding:5px 10px;border-radius:7px;border:none;font-size:12px;font-weight:500;transition:all .15s;display:flex;align-items:center;gap:4px;background:transparent;color:var(--mu)}
+.tab-btn{padding:5px 11px;border-radius:7px;border:none;font-size:13px;font-weight:500;transition:all .15s;display:flex;align-items:center;gap:4px;background:transparent;color:var(--mu)}
 .tab-btn.active{background:var(--s3);color:var(--tx)}
 .icon-btn{width:28px;height:28px;border-radius:7px;border:1px solid var(--br);background:transparent;color:var(--mu);display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0}
 .icon-btn:hover{border-color:var(--b2);color:var(--tx)}
@@ -52,14 +52,14 @@ button{font-family:'DM Sans','Noto Sans KR',sans-serif;cursor:pointer}
 .msg-row{display:flex;gap:8px;align-items:flex-start;animation:fadeIn .2s ease}
 .msg-row.user{justify-content:flex-end}
 .avatar{width:28px;height:28px;background:var(--gr);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
-.bubble{max-width:76%;padding:9px 13px;border-radius:3px 12px 12px 12px;background:var(--sf);border:1px solid var(--br);line-height:1.65;white-space:pre-wrap;font-size:13.5px}
+.bubble{max-width:76%;padding:10px 14px;border-radius:3px 12px 12px 12px;background:var(--sf);border:1px solid var(--br);line-height:1.65;white-space:pre-wrap;font-size:15px}
 .bubble.user{border-radius:12px 3px 12px 12px;background:var(--gb);border-color:#1e3a1e}
 .bubble img{width:100%;max-width:180px;border-radius:8px 8px 0 0;display:block;margin:-9px -13px 6px -13px;border-bottom:1px solid var(--br)}
 .typing{padding:10px 13px;background:var(--sf);border:1px solid var(--br);border-radius:3px 12px 12px 12px}
 .dot-row{display:flex;gap:5px;align-items:center}
 .dot{width:6px;height:6px;border-radius:50%;background:var(--gr);animation:bop .9s ease-in-out infinite}
 .chips{padding:0 14px 8px;display:flex;gap:6px;overflow-x:auto;flex-shrink:0}
-.chip{padding:5px 11px;border-radius:20px;border:1px solid var(--br);background:transparent;color:var(--mu);font-size:11px;white-space:nowrap;flex-shrink:0;transition:all .15s}
+.chip{padding:6px 13px;border-radius:20px;border:1px solid var(--br);background:transparent;color:var(--mu);font-size:13px;white-space:nowrap;flex-shrink:0;transition:all .15s}
 .chip:hover{border-color:var(--gr);color:var(--gr)}
 .chip.cam:hover{border-color:var(--or);color:var(--or)}
 .img-preview{padding:0 14px 8px;display:flex;align-items:center;gap:10px}
@@ -76,18 +76,18 @@ button{font-family:'DM Sans','Noto Sans KR',sans-serif;cursor:pointer}
 .send-btn.active{background:var(--gr);color:#0c0e14}
 .scroll-tab{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:12px}
 .card{background:var(--sf);border:1px solid var(--br);border-radius:16px;padding:14px}
-.sec-lbl{font-size:10px;font-weight:500;color:var(--mu);letter-spacing:.07em;text-transform:uppercase;margin-bottom:12px}
+.sec-lbl{font-size:12px;font-weight:500;color:var(--mu);letter-spacing:.07em;text-transform:uppercase;margin-bottom:12px}
 .stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .stat-card{background:var(--sf);border:1px solid var(--br);border-radius:14px;padding:13px 12px}
-.stat-val{font-size:22px;font-weight:700;letter-spacing:-.02em}
-.stat-unit{font-size:11px;color:var(--mu);font-weight:400;margin-left:2px}
-.stat-lbl{font-size:10px;color:var(--mu);margin-bottom:5px}
+.stat-val{font-size:24px;font-weight:700;letter-spacing:-.02em}
+.stat-unit{font-size:13px;color:var(--mu);font-weight:400;margin-left:2px}
+.stat-lbl{font-size:12px;color:var(--mu);margin-bottom:5px}
 .bar-row{display:flex;gap:6px;justify-content:space-between}
 .bar-wrap{display:flex;flex-direction:column;align-items:center;gap:3px;flex:1}
-.bar-sub{font-size:9px;color:var(--mu);height:14px;display:flex;align-items:flex-end}
+.bar-sub{font-size:11px;color:var(--mu);height:14px;display:flex;align-items:flex-end}
 .bar-bg{width:100%;height:64px;display:flex;align-items:flex-end}
 .bar-fill{width:100%;border-radius:4px 4px 0 0;transition:height .7s cubic-bezier(.34,1.56,.64,1)}
-.bar-lbl{font-size:10px;font-weight:500}
+.bar-lbl{font-size:12px;font-weight:500}
 .ring-wrap{position:relative;flex-shrink:0}
 .ring-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px}
 .pr-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--br)}
@@ -98,9 +98,9 @@ button{font-family:'DM Sans','Noto Sans KR',sans-serif;cursor:pointer}
 .food-row:last-child{border:none}
 .food-thumb{width:48px;height:48px;border-radius:10px;object-fit:cover;flex-shrink:0;border:1px solid var(--br)}
 .food-ph{width:48px;height:48px;border-radius:10px;background:var(--s2);display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.nut-tag{font-size:10px;padding:1px 6px;border-radius:4px}
+.nut-tag{font-size:12px;padding:1px 6px;border-radius:4px}
 .empty-state{text-align:center;padding:28px 0}
-.empty-btn{padding:8px 18px;border-radius:10px;border:1px solid var(--gr);background:transparent;color:var(--gr);font-size:13px}
+.empty-btn{padding:8px 18px;border-radius:10px;border:1px solid var(--gr);background:transparent;color:var(--gr);font-size:14px}
 </style>
 </head>
 <body>
